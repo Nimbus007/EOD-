@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT End-of-Day Report</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#21262d; --border:#30363d;
+  --text:#e6edf3; --muted:#8b949e;
+  --green:#3fb950; --yellow:#d29922; --red:#f85149; --blue:#58a6ff; --orange:#db6d28; --purple:#bc8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'Segoe UI',system-ui,Roboto,Arial,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.brand{font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px}
+.dot-live{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green)}
+.clock{font-family:ui-monospace,Consolas,monospace;color:var(--muted);font-size:13px}
+.wrap{max-width:1000px;margin:0 auto;padding:22px 16px 70px}
+.meta{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.today{font-size:20px;font-weight:600}
+.sub{color:var(--muted);font-size:12px;margin-top:3px}
+.name{background:transparent;border:none;border-bottom:1px dashed var(--border);color:var(--blue);font-size:14px;font-weight:600;text-align:right;outline:none;min-width:200px;padding:3px 0}
+.name:focus{border-bottom-color:var(--blue)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.kpi .n{font-size:26px;font-weight:700;line-height:1}
+.kpi .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:6px}
+.k-b .n{color:var(--blue)} .k-g .n{color:var(--green)} .k-y .n{color:var(--yellow)} .k-r .n{color:var(--red)} .k-p .n{color:var(--purple)}
+.bar{height:4px;background:var(--panel2);border-radius:3px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--purple);width:0;transition:width .3s}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chip{background:var(--panel);border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;padding:4px 11px;cursor:pointer}
+.chip b{color:var(--text);margin-left:3px}
+.chip.on{border-color:var(--blue);color:var(--blue)}
+.addform{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.addform input[type=text]{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:10px 12px;color:var(--text);font-size:14px;outline:none}
+.addform input:focus,select:focus{border-color:var(--blue)}
+#taskInput{flex:1;min-width:230px}
+#siteInput{width:80px;text-transform:uppercase}
+select{background:var(--panel);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:9px 8px;font-size:13px;outline:none;cursor:pointer}
+.btn{background:#238636;border:1px solid rgba(240,246,252,.1);border-radius:7px;color:#fff;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{background:#2ea043}
+.btn.ghost{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-weight:500}
+.btn.ghost:hover{border-color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin-bottom:16px}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+#search{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px}
+.panel textarea{width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:10px;font-size:13px;resize:vertical;outline:none;margin-bottom:8px}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+section{margin-bottom:22px}
+.sec-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;margin-bottom:8px}
+.count{background:var(--panel2);border:1px solid var(--border);border-radius:20px;padding:1px 10px;font-size:12px;color:var(--muted);font-weight:400}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+table{width:100%;border-collapse:collapse;background:var(--panel);font-size:13px}
+th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--panel2);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.tid{font-family:ui-monospace,Consolas,monospace;color:var(--muted);white-space:nowrap}
+.task{min-width:220px;line-height:1.45;word-break:break-word}
+.cat{color:var(--muted);white-space:nowrap}
+.site{font-family:ui-monospace,Consolas,monospace;white-space:nowrap}
+.time{color:var(--muted);white-space:nowrap;font-family:ui-monospace,Consolas,monospace}
+.badge{font-size:10px;font-weight:700;letter-spacing:.5px;padding:4px 9px;border-radius:20px;cursor:pointer;border:none;text-transform:uppercase;white-space:nowrap}
+.st-resolved{background:rgba(63,185,80,.15);color:var(--green)}
+.st-ongoing{background:rgba(210,153,34,.15);color:var(--yellow)}
+.st-pending{background:rgba(248,81,73,.15);color:var(--red)}
+.prio{white-space:nowrap;font-size:12px}
+.p-critical{color:var(--red);font-weight:600} .p-high{color:var(--orange)} .p-normal{color:var(--blue)} .p-low{color:var(--muted)}
+.icon{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:1px 4px}
+.icon:hover{color:var(--text)}
+.empty{color:var(--muted);font-style:italic;text-align:center;padding:14px!important}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+#histPanel{display:none}
+#histPanel h3{font-size:14px;margin-bottom:8px}
+.c-g{color:var(--green)} .c-y{color:var(--yellow)} .c-r{color:var(--red)}
+footer{color:var(--muted);font-size:11px;text-align:center;padding:14px}
+#exitClean{display:none;position:fixed;bottom:14px;right:14px;z-index:20}
+body.clean .no-shot{display:none!important}
+body.clean .act{display:none!important}
+body.clean #exitClean{display:block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#238636;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:30}
+.toast.show{opacity:1}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.k-p{grid-column:span 2}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot-live"></span>🖥️ IT Support — End of Day Report</div>
+  <div class="clock" id="clock"></div>
+</div>
+
+<div class="wrap">
+  <div class="meta">
+    <div>
+      <div class="today" id="date"></div>
+      <div class="sub">Daily ticket board · data is stored locally on this device</div>
+    </div>
+    <input class="name" id="name" placeholder="Technician name (click to edit)">
+  </div>
+
+  <div class="kpis">
+    <div class="kpi k-b"><div class="n" id="nTot">0</div><div class="l">Total tickets</div></div>
+    <div class="kpi k-g"><div class="n" id="nRes">0</div><div class="l">Resolved</div></div>
+    <div class="kpi k-y"><div class="n" id="nOng">0</div><div class="l">Ongoing</div></div>
+    <div class="kpi k-r"><div class="n" id="nPen">0</div><div class="l">Pending</div></div>
+    <div class="kpi k-p"><div class="n" id="nRate">0%</div><div class="l">Resolution rate</div><div class="bar"><i id="rateBar"></i></div></div>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="addform no-shot">
+    <input type="text" id="taskInput" placeholder="New ticket — e.g. TM Printer Troubleshooting">
+    <select id="catInput">
+      <option value="__auto">Auto category</option>
+      <option>Dental Apps</option><option>Hardware</option><option>Software</option>
+      <option>Network/VPN</option><option>Accounts & Access</option><option>Email</option>
+      <option>Security</option><option>Other</option>
+    </select>
+    <input type="text" id="siteInput" maxlength="6" placeholder="Site">
+    <select id="prioInput">
+      <option value="normal">Normal</option><option value="low">Low</option>
+      <option value="high">High</option><option value="critical">Critical</option>
+    </select>
+    <select id="statusInput">
+      <option value="resolved">Resolved</option><option value="ongoing">Ongoing</option><option value="pending">Pending</option>
+    </select>
+    <button class="btn" onclick="addTask()">Add</button>
+  </div>
+  <div class="hint no-shot">Smart entry: category is auto-detected from the text (OpenDental, Overjet, Intune…), and starting with a site code ("TM Printer…") auto-fills Site. Click any status badge to cycle Resolved → Ongoing → Pending.</div>
+
+  <div class="panel no-shot" id="bulk" style="display:none">
+    <textarea id="bulkText" placeholder="Paste your list — one task per line (bullets are stripped, category & site auto-detected)"></textarea>
+    <div class="row">
+      <select id="bulkStatus"><option value="resolved">Resolved</option><option value="ongoing">Ongoing</option><option value="pending">Pending</option></select>
+      <select id="bulkPrio"><option value="normal">Normal</option><option value="low">Low</option><option value="high">High</option><option value="critical">Critical</option></select>
+      <button class="btn" onclick="bulkAdd()">Add all</button>
+      <button class="btn ghost" onclick="toggleBulk()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="toolbar no-shot">
+    <input id="search" placeholder="🔎 Search tickets, sites, categories…" oninput="query=this.value;render()">
+    <button class="btn ghost" onclick="toggleClean()">📷 Screenshot mode</button>
+    <button class="btn ghost" onclick="toggleBulk()">📥 Bulk add</button>
+    <button class="btn ghost" onclick="copyReport()">📋 Copy report</button>
+    <button class="btn ghost" onclick="exportCSV()">⬇️ CSV</button>
+    <button class="btn ghost" onclick="toggleHistory()">🗓 History</button>
+    <button class="btn ghost" onclick="newDay()">🌅 New day</button>
+  </div>
+
+  <div class="panel" id="histPanel">
+    <h3>📈 Daily history</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Date</th><th>Total</th><th>Resolved</th><th>Ongoing</th><th>Pending</th><th>Rate</th></tr></thead>
+      <tbody id="histBody"></tbody>
+    </table></div>
+  </div>
+
+  <section><div class="sec-h">✅ Resolved <span class="count" id="cRes">0</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Status</th><th>ID</th><th>Ticket</th><th>Category</th><th>Site</th><th>Priority</th><th>Logged</th><th class="act"></th></tr></thead><tbody id="listRes"></tbody></table></div>
+  </section>
+  <section><div class="sec-h">🔄 Ongoing <span class="count" id="cOng">0</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Status</th><th>ID</th><th>Ticket</th><th>Category</th><th>Site</th><th>Priority</th><th>Logged</th><th class="act"></th></tr></thead><tbody id="listOng"></tbody></table></div>
+  </section>
+  <section><div class="sec-h">⏳ Pending <span class="count" id="cPen">0</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Status</th><th>ID</th><th>Ticket</th><th>Category</th><th>Site</th><th>Priority</th><th>Logged</th><th class="act"></th></tr></thead><tbody id="listPen"></tbody></table></div>
+  </section>
+
+  <footer>EOD Dashboard v2 · tickets are saved in this browser only (nothing is uploaded)</footer>
+</div>
+
+<button class="btn ghost" id="exitClean" onclick="toggleClean()">✏️ Exit screenshot mode</button>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(3,'0');
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let nextId=+localStorage.getItem('eod2_next')||1;
+let tasks=JSON.parse(localStorage.getItem('eod2_tasks')||'null');
+let history=JSON.parse(localStorage.getItem('eod2_hist')||'[]');
+let query='',catFilter=null;
+
+// migrate data from version 1 if present
+if(!tasks){
+  const old=JSON.parse(localStorage.getItem('eodTasks')||'[]');
+  tasks=old.map(o=>({id:nextId++,text:o.text,status:o.status,category:detectCat(o.text),site:detectSite(o.text),priority:'normal',created:Date.now()}));
+}
+
+function saveAll(){
+  localStorage.setItem('eod2_tasks',JSON.stringify(tasks));
+  localStorage.setItem('eod2_next',nextId);
+  localStorage.setItem('eod2_hist',JSON.stringify(history));
+}
+
+/* ---------- smart detection ---------- */
+const RULES=[
+  ['Dental Apps',['opendental','open dental','overjet','dexis','mouthwatch','mouth watch','erx','e-rx','pano','x-ray','xray','sensor','imaging','intraoral']],
+  ['Security',['intune','defender','purview','sensitive label','mfa','2nd verification','security','compliance']],
+  ['Email',['email','outlook','mailbox','inbox']],
+  ['Network/VPN',['vpn','network','wifi','wi-fi','internet','dns','firewall']],
+  ['Accounts & Access',['password','sso','access','account','permission','folder','login','sign in','reset']],
+  ['Hardware',['scanner','printer','monitor','computer','laptop','desktop','pc ','keyboard','mouse','dock','seat','workstation']],
+  ['Software',['citrix','atera','script','application','install','software','forms','update','app']]
+];
+function detectCat(text){const s=' '+text.toLowerCase()+' ';for(const[c,kws]of RULES){if(kws.some(k=>s.includes(k)))return c}return 'Other'}
+function detectSite(text){const m=text.match(/^([A-Z]{2})[\s\-–]/);return m?m[1]:''}
+
+/* ---------- add / edit ---------- */
+function addTask(){
+  const text=$('taskInput').value.trim(); if(!text)return;
+  let cat=$('catInput').value; if(cat==='__auto')cat=detectCat(text);
+  const site=($('siteInput').value.trim().toUpperCase())||detectSite(text);
+  tasks.push({id:nextId++,text,category:cat,site,priority:$('prioInput').value,status:$('statusInput').value,created:Date.now()});
+  $('taskInput').value='';$('siteInput').value='';$('taskInput').focus();
+  saveAll();render();
+}
+function toggleBulk(){const b=$('bulk');b.style.display=b.style.display==='block'?'none':'block'}
+function bulkAdd(){
+  const lines=$('bulkText').value.split('\n').map(l=>l.replace(/^[\s•\-\*·]+/,'').trim()).filter(Boolean);
+  lines.forEach(text=>tasks.push({id:nextId++,text,category:detectCat(text),site:detectSite(text),priority:$('bulkPrio').value,status:$('bulkStatus').value,created:Date.now()}));
+  $('bulkText').value='';toggleBulk();saveAll();render();toast(lines.length+' ticket(s) added');
+}
+function cycle(id){
+  const order=['resolved','ongoing','pending'];
+  const t=tasks.find(t=>t.id===id);if(!t)return;
+  t.status=order[(order.indexOf(t.status)+1)%3];saveAll();render();
+}
+function editTask(id){
+  const t=tasks.find(t=>t.id===id);
+  const nt=prompt('Edit ticket:',t.text);
+  if(nt!==null&&nt.trim()){t.text=nt.trim();saveAll();render();}
+}
+function delTask(id){tasks=tasks.filter(t=>t.id!==id);saveAll();render()}
+function toggleCat(c){catFilter=(catFilter===c)?null:c;render()}
+
+/* ---------- render ---------- */
+const PRANK={critical:0,high:1,normal:2,low:3};
+function grouped(list){
+  const g={resolved:[],ongoing:[],pending:[]};
+  list.forEach(t=>g[t.status].push(t));
+  Object.values(g).forEach(a=>a.sort((x,y)=>PRANK[x.priority]-PRANK[y.priority]||x.created-y.created));
+  return g;
+}
+function visible(t){
+  if(catFilter&&t.category!==catFilter)return false;
+  if(!query)return true;
+  const q=query.toLowerCase();
+  return t.text.toLowerCase().includes(q)||t.site.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)||('#'+pad(t.id)).includes(q);
+}
+function row(t){
+  return `<tr>
+    <td><button class="badge st-${t.status}" title="Click to change status" onclick="cycle(${t.id})">${t.status}</button></td>
+    <td class="tid">#${pad(t.id)}</td>
+    <td class="task">${esc(t.text)}</td>
+    <td class="cat">${esc(t.category)}</td>
+    <td class="site">${esc(t.site)||'—'}</td>
+    <td><span class="prio p-${t.priority}">● ${cap(t.priority)}</span></td>
+    <td class="time">${new Date(t.created).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+    <td class="act"><button class="icon" title="Edit" onclick="editTask(${t.id})">✎</button><button class="icon" title="Delete" onclick="delTask(${t.id})">✕</button></td>
+  </tr>`;
+}
+function render(){
+  const all=grouped(tasks), g=grouped(tasks.filter(visible));
+  $('listRes').innerHTML=g.resolved.map(row).join('')||'<tr><td colspan="8" class="empty">No tickets</td></tr>';
+  $('listOng').innerHTML=g.ongoing.map(row).join('')||'<tr><td colspan="8" class="empty">No tickets</td></tr>';
+  $('listPen').innerHTML=g.pending.map(row).join('')||'<tr><td colspan="8" class="empty">No tickets</td></tr>';
+  $('cRes').textContent=g.resolved.length;$('cOng').textContent=g.ongoing.length;$('cPen').textContent=g.pending.length;
+  $('nTot').textContent=tasks.length;
+  $('nRes').textContent=all.resolved.length;$('nOng').textContent=all.ongoing.length;$('nPen').textContent=all.pending.length;
+  const rate=tasks.length?Math.round(all.resolved.length/tasks.length*100):0;
+  $('nRate').textContent=rate+'%';$('rateBar').style.width=rate+'%';
+  const cats={};tasks.forEach(t=>cats[t.category]=(cats[t.category]||0)+1);
+  $('chips').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1])
+    .map(([c,n])=>`<button class="chip ${c===catFilter?'on':''}" data-c="${esc(c)}" onclick="toggleCat(this.dataset.c)">${esc(c)}<b>${n}</b></button>`).join('');
+  $('histBody').innerHTML=history.map(h=>`<tr><td>${esc(h.date)}</td><td>${h.total}</td><td class="c-g">${h.resolved}</td><td class="c-y">${h.ongoing}</td><td class="c-r">${h.pending}</td><td>${h.rate}%</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No history yet — it fills in when you press "New day"</td></tr>';
+}
+
+/* ---------- report / export / day close ---------- */
+function meta(t){
+  const parts=[t.category,t.site,t.priority!=='normal'?t.priority.toUpperCase():''].filter(Boolean);
+  return parts.length?`  [${parts.join(' · ')}]`:'';
+}
+function copyReport(){
+  const g=grouped(tasks);
+  const d=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const rate=tasks.length?Math.round(g.resolved.length/tasks.length*100):0;
+  let out=`🖥️ IT END-OF-DAY REPORT — ${d}`;
+  if($('name').value.trim())out+=`\nTechnician: ${$('name').value.trim()}`;
+  out+=`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  out+=`\nSUMMARY: ${tasks.length} tickets — ✅ ${g.resolved.length} Resolved (${rate}%) · 🔄 ${g.ongoing.length} Ongoing · ⏳ ${g.pending.length} Pending\n`;
+  const sec=(icon,label,arr)=>`\n${icon} ${label} (${arr.length})\n`+(arr.map((t,i)=>`${String(i+1).padStart(2,' ')}. #${pad(t.id)} ${t.text}${meta(t)}`).join('\n')||' —');
+  out+=sec('✅','RESOLVED',g.resolved)+'\n';
+  out+=sec('🔄','ONGOING',g.ongoing)+'\n';
+  out+=sec('⏳','PENDING',g.pending);
+  copyText(out).then(()=>toast('Report copied — paste it in Teams'));
+}
+function copyText(s){
+  if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(s);
+  const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();
+  document.execCommand('copy');ta.remove();return Promise.resolve();
+}
+function exportCSV(){
+  const rows=[['ID','Status','Ticket','Category','Site','Priority','Logged']];
+  tasks.forEach(t=>rows.push(['#'+pad(t.id),t.status,t.text,t.category,t.site,t.priority,new Date(t.created).toLocaleString()]));
+  const csv=rows.map(r=>r.map(f=>'"'+String(f).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='EOD-Report-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+function newDay(){
+  if(!tasks.length){toast('Nothing to archive yet');return}
+  if(!confirm('Close out the day?\n\n• Today\'s counts are saved to History\n• Resolved tickets are cleared\n• Ongoing & Pending carry over'))return;
+  const g=grouped(tasks);
+  history.unshift({date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    total:tasks.length,resolved:g.resolved.length,ongoing:g.ongoing.length,pending:g.pending.length,
+    rate:Math.round(g.resolved.length/tasks.length*100)});
+  history=history.slice(0,90);
+  tasks=tasks.filter(t=>t.status!=='resolved');
+  saveAll();render();toast('Day archived — carry-overs kept');
+}
+function toggleHistory(){const p=$('histPanel');p.style.display=p.style.display==='block'?'none':'block'}
+function toggleClean(){document.body.classList.toggle('clean')}
+
+/* ---------- misc ---------- */
+let toastTimer;
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200)}
+$('date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+$('name').value=localStorage.getItem('eod2_name')||'';
+$('name').addEventListener('input',e=>localStorage.setItem('eod2_name',e.target.value));
+$('taskInput').addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
+function tickClock(){$('clock').textContent=new Date().toLocaleString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+setInterval(tickClock,1000);tickClock();
+saveAll();render();
+</script>
+</body>
+</html>
