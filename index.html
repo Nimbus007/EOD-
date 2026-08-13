@@ -73,7 +73,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .icon{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:1px 4px}
 .icon:hover{color:var(--text)}
 .empty{color:var(--muted);font-style:italic;text-align:center;padding:14px!important}
-.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
 #histPanel{display:none}
 #histPanel h3{font-size:14px;margin-bottom:8px}
 .c-g{color:var(--green)} .c-y{color:var(--yellow)} .c-r{color:var(--red)}
@@ -86,7 +85,7 @@ body.clean #exitClean{display:block}
 .toast.show{opacity:1}
 
 /* ---------- 8-bit shift hourglass ---------- */
-.shiftbox{width:154px;background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:12px 10px 14px;text-align:center;margin:0 auto 18px;box-shadow:0 0 0 2px #000,0 4px 0 rgba(0,0,0,.45)}
+.shiftbox{width:154px;background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:12px 10px 14px;text-align:center;margin:0 auto;box-shadow:0 0 0 2px #000,0 4px 0 rgba(0,0,0,.45)}
 .shiftbox .sb-title{font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:3px;color:var(--muted);margin-bottom:8px}
 #hgWrap{display:inline-block;line-height:0}
 .shiftbox.spin #hgWrap{animation:hgspin .8s ease-in-out forwards}
@@ -99,8 +98,21 @@ body.clean #exitClean{display:block}
 .sb-note{margin-top:9px;font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;min-height:12px}
 .shiftbox.done .sb-note{color:var(--green);animation:sbblink 1s steps(2,start) infinite}
 @keyframes sbblink{to{visibility:hidden}}
-@media(min-width:1360px){.shiftbox{position:fixed;right:16px;top:50%;transform:translateY(-50%);margin:0;z-index:9}}
 
+/* ---------- 8-bit side arcade ---------- */
+#railL,#railR,.pxcol{display:flex;flex-direction:column;align-items:center;gap:14px}
+.pxscene{background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:6px 6px 4px;box-shadow:0 0 0 2px #000,0 4px 0 rgba(0,0,0,.45)}
+.pxscene canvas{display:block;background:#0a0e14;border:1px solid #000;image-rendering:pixelated;image-rendering:crisp-edges}
+.pxcap{font-family:ui-monospace,Consolas,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:4px}
+@media(min-width:1560px){
+  #railL{position:fixed;left:10px;top:70px;bottom:10px;width:238px;justify-content:space-evenly;overflow:hidden;z-index:5}
+  #railR{position:fixed;right:10px;top:70px;bottom:10px;width:238px;justify-content:space-evenly;overflow:hidden;z-index:5}
+}
+@media(max-width:1559px){
+  #railL{display:none}
+  #railR .pxscene{display:none}
+  #railR{margin-bottom:18px}
+}
 @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.k-p{grid-column:span 2}}
 </style>
 </head>
@@ -120,13 +132,20 @@ body.clean #exitClean{display:block}
     <input class="name" id="name" placeholder="Technician name (click to edit)">
   </div>
 
-  <!-- 8-bit shift hourglass -->
-  <div class="shiftbox no-shot" id="shiftBox">
-    <div class="sb-title">SHIFT TIMER</div>
-    <div id="hgWrap"><canvas id="hgCv"></canvas></div>
-    <canvas id="hgTime"></canvas>
-    <button class="sb-btn" id="sbBtn" onclick="startShift()">▶ Start</button>
-    <div class="sb-note" id="sbNote"></div>
+  <!-- left arcade rail -->
+  <div id="railL" class="no-shot"></div>
+
+  <!-- right arcade rail (holds the shift timer) -->
+  <div id="railR" class="no-shot">
+    <div id="rrA" class="pxcol"></div>
+    <div class="shiftbox" id="shiftBox">
+      <div class="sb-title">SHIFT TIMER</div>
+      <div id="hgWrap"><canvas id="hgCv"></canvas></div>
+      <canvas id="hgTime"></canvas>
+      <button class="sb-btn" id="sbBtn" onclick="startShift()">▶ Start</button>
+      <div class="sb-note" id="sbNote"></div>
+    </div>
+    <div id="rrB" class="pxcol"></div>
   </div>
 
   <div class="kpis">
@@ -214,7 +233,6 @@ let tasks=JSON.parse(localStorage.getItem('eod2_tasks')||'null');
 let history=JSON.parse(localStorage.getItem('eod2_hist')||'[]');
 let query='',catFilter=null;
 
-// migrate data from version 1 if present
 if(!tasks){
   const old=JSON.parse(localStorage.getItem('eodTasks')||'[]');
   tasks=old.map(o=>({id:nextId++,text:o.text,status:o.status,category:detectCat(o.text),site:detectSite(o.text),priority:'normal',created:Date.now()}));
@@ -370,7 +388,7 @@ saveAll();render();
 /* ---------- 8-bit shift hourglass ---------- */
 const SHIFT_HOURS=9;                       // ← change your shift length here
 const HGS=5,HGW=21,HGH=30,HGCX=10;
-const HGTOPS=[8,8,7,6,5,4,3,3,2,2,1,1];    // half-widths of the top bulb, row by row
+const HGTOPS=[8,8,7,6,5,4,3,3,2,2,1,1];
 const HGCAP=HGTOPS.reduce((a,h)=>a+2*h+1,0);
 const HGFONT={'0':[7,5,5,5,7],'1':[2,6,2,2,7],'2':[7,1,7,4,7],'3':[7,1,3,1,7],'4':[5,5,7,1,1],
   '5':[7,4,7,1,7],'6':[7,4,7,5,7],'7':[7,1,2,2,2],'8':[7,5,7,5,7],'9':[7,5,7,1,7],':':[0,2,0,2,0],' ':[0,0,0,0,0]};
@@ -384,35 +402,27 @@ function hgRowCells(y,h,n){const cells=[[HGCX,y]];for(let i=1;i<=h;i++)cells.pus
 
 function drawHG(topU,stream){
   hgCtx.clearRect(0,0,hgCv.width,hgCv.height);
-  // wooden frame
   for(let x=0;x<HGW;x++){hgPx(x,0,'#7c4a1e');hgPx(x,1,'#b06a30');hgPx(x,28,'#b06a30');hgPx(x,29,'#7c4a1e')}
-  // glass walls
   for(let y=2;y<=13;y++){const h=HGTOPS[y-2];hgPx(HGCX-h-1,y,'#7ec8ff');hgPx(HGCX+h+1,y,'#7ec8ff')}
   for(let y=14;y<=15;y++){hgPx(HGCX-1,y,'#7ec8ff');hgPx(HGCX+1,y,'#7ec8ff')}
   for(let y=16;y<=27;y++){const h=HGTOPS[27-y];hgPx(HGCX-h-1,y,'#7ec8ff');hgPx(HGCX+h+1,y,'#7ec8ff')}
-  // top sand (drains bottom-up)
   let u=topU,last=null;
   for(let y=13;y>=2&&u>0;y--){const h=HGTOPS[y-2],n=Math.min(2*h+1,u);const c=hgRowCells(y,h,n);
     c.forEach(([x,yy])=>hgPx(x,yy,'#f2c744'));last=c;u-=n}
   if(last)last.forEach(([x,yy])=>hgPx(x,yy,'#ffe08a'));
-  // bottom sand (pile grows up, peak in the middle)
   let b=HGCAP-topU,pileTop=28,lastB=null;
   for(let y=27;y>=16&&b>0;y--){const h=HGTOPS[27-y],n=Math.min(2*h+1,b);const c=hgRowCells(y,h,n);
     c.forEach(([x,yy])=>hgPx(x,yy,'#f2c744'));lastB=c;pileTop=y;b-=n}
   if(lastB)lastB.forEach(([x,yy])=>hgPx(x,yy,'#ffe08a'));
-  // falling sand stream (flickers like grains)
   if(stream&&topU>0){for(let y=14;y<pileTop;y++)if((y+hgTick)%2===0)hgPx(HGCX,y,'#ffd75e')}
-  // glass shine
   hgPx(3,3,'rgba(255,255,255,.45)');hgPx(4,4,'rgba(255,255,255,.25)');hgPx(3,26,'rgba(255,255,255,.2)');
 }
-
 function fmtHMS(ms){ms=Math.max(0,ms);const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
   const p=n=>String(n).padStart(2,'0');return h+':'+p(m)+':'+p(ss)}
 function drawTime(str,color){const cv=$('hgTime'),S=4;cv.width=(str.length*4-1)*S;cv.height=5*S;
   const c=cv.getContext('2d');c.fillStyle=color;
   for(let i=0;i<str.length;i++){const g=HGFONT[str[i]]||HGFONT[' '];
     for(let r=0;r<5;r++)for(let col=0;col<3;col++)if((g[r]>>(2-col))&1)c.fillRect((i*4+col)*S,r*S,S,S)}}
-
 function shiftState(){
   if(!shiftStart)return{mode:'idle',remain:SHIFT_HOURS*36e5,e:0};
   const dur=SHIFT_HOURS*36e5,el=Date.now()-shiftStart;
@@ -431,7 +441,7 @@ function renderShift(){
   else{
     tstr=fmtHMS(st.remain);
     color=st.remain<6e5?'#f85149':st.remain<36e5?'#d29922':'#3fb950';
-    if(hgTick%4>=2)tstr=tstr.replace(/:/g,' ');   // blinking colons
+    if(hgTick%4>=2)tstr=tstr.replace(/:/g,' ');
   }
   drawTime(tstr,color);
   $('sbBtn').style.display=st.mode==='run'?'none':'';
@@ -457,6 +467,195 @@ hgCv.addEventListener('dblclick',()=>{
 });
 setInterval(()=>{hgTick++;renderShift()},250);
 renderShift();
+
+/* ================= 8-BIT SIDE ARCADE ================= */
+const PAL={K:'#101014',k:'#3d434d',W:'#ffffff',w:'#b9c4cf',
+R:'#e5303e',r:'#7f1c26',O:'#ff8c1a',Y:'#ffd23f',y:'#ffedb0',
+G:'#3fb950',g:'#1e6b33',B:'#2f6fce',b:'#173a6e',C:'#63d1ff',
+S:'#f2c797',s:'#c98f5a',N:'#8a5a2b',n:'#59371a',P:'#b06ae0',p:'#e6c3ff'};
+let pxT=0;const SCN=[];
+function pd(c,px,x,y,col){c.fillStyle=PAL[col]||col;c.fillRect(x*px,y*px,px,px)}
+function blit(c,px,art,ox,oy,tint){
+  for(let y=0;y<art.length;y++){const r=art[y];
+    for(let x=0;x<r.length;x++){const ch=r[x];if(ch==='.'||ch===' ')continue;
+      pd(c,px,ox+x,oy+y,tint||ch)}}}
+function addScene(mount,label,w,h,px,fn){
+  const box=document.createElement('div');box.className='pxscene';
+  const cv=document.createElement('canvas');cv.width=w*px;cv.height=h*px;
+  const capEl=document.createElement('div');capEl.className='pxcap';capEl.textContent=label;
+  box.append(cv,capEl);$(mount).append(box);
+  SCN.push({c:cv.getContext('2d'),w,h,px,fn});
+}
+
+/* ---- sprites ---- */
+const RYU=[
+'....KKKK........','...KKKKKK.......','...RRRRRR.......','...SSSkS........',
+'...SSSSS........','....SSS.........','..WWWWWW........','.WWWWWWWWSS.....',
+'.WWWWWWWWSS.....','..WWWWWW........','..KKKKKK........','..WWW.WW........',
+'..WW...WW.......','..WW....WW......','.SSS....SSS.....'];
+const KEN=[
+'....YYYY....','...YYYYYY...','...YSkSS....','....SSSS....','.....SS.....',
+'...RRRRR....','..SSRRRRR...','..SSRRRRR...','...RRRRR....','...KKKKK....',
+'...RR.RR....','...RR.RR....','..RR...RR...','..RR...RR...','.SSS...SSS..'];
+const FB1=['.CC.','CWWC','CWWC','.CC.'];
+const FB2=['C..C','.WW.','.WW.','C..C'];
+const MAR=[
+'...RRRRR....','..RRRRRRRRR.','..nnnSSkS...','.nSnSSSSkSS.','.nSnnSSSSSS.',
+'..nSSSSSSSS.','...RRBRR....','..RRRBBRRR..','.SSRBBBBRSS.','.SSBBBBBBSS.',
+'...BBBBBB...','...BB..BB...','..nnn..nnn..'];
+const QB=['YYYY','YKKY','YYKY','YYYY'];
+const CO1=['yYy','YYY','YYY','yYy'];
+const CO2=['.Y.','.Y.','.Y.','.Y.'];
+const BILL=[
+'....nnnn......','...nnnnnn.....','...RRRRRR.....','...SSSkS......','...SSSSS......',
+'....SSS.......','..SSSSSSS.....','.SSSSSSSSSkkkk','..SSSSSSS.....','...SSSSS......',
+'...BBBBB......','...BBBBB......','...BB.BB......','...BB.BB......','..nn...nn.....'];
+const WUK=[
+'...NNNNNN...','..NYYYYYYN..','..NSSSSSSN..','..NSkSSkSN..','..NSSSSSSN..',
+'...NSSSSN...','...RRRRRR...','..SRRRRRRS..','...RYYYYR...','...RRRRRR...',
+'...RR..RR...','...RR..RR...','..KK....KK..'];
+const FRI=[
+'...WWWWWW...','..WWWWWWWW..','..WWWWWWWW..','..WSGSSGSW..','..WSSSSSSW..',
+'..W.SSSS.W..','..W.wwww.W..','..Wwwwww.W..','..Wwwwww.W..','..Wwwwww.W..',
+'..Wkwkwk.W..','..Wkwkwk.W..','..W.kkkk.W..','..W..ww..W..','..W..ww..W..',
+'.WW..nn..WW.'];
+const VAD=[
+'.....KKKK.....','....KKKKKK....','...KKKKKKKK...','...KKKKKKKK...','....kKKKKk....',
+'...KkkKKkkK...','...KKKKKKKK...','....KkkkkK....','..KKKKKKKKKK..','.KKKKKKKKKKKK.',
+'.KKKKKKKKKKKK.','.KKKkRGBkKKKK.','.KKKKKKKKKKKK.','.KKKKKKKKKKKK.','.KK.KKKKKK.KK.',
+'.KK.KKKKKK.KK.','.KK..KKKK..KK.','....KK..KK....','....KK..KK....','...KKK..KKK...'];
+const PIKA=[
+'..K.........K..','..KK.......KK..','...KY.....YK...','...YY.....YY...','...YYYYYYYYY...',
+'..YYYYYYYYYYY..','..YKYYYYYYYKY..','..YYYYYYYYYYY..','..RRYYYkYYYRR..','..YYYYYYYYYYY..',
+'...YYYYYYYYY...','....YY...YY....','...YYY...YYY...'];
+const DRG=[
+'......gg....gg..','.....gGGg..gGGg.','..GGG...GGGGGG..','.GGRGG..GGGGGG..',
+'.GGGG..GGGGGGG..','..GG..GGGGGGGG..','...GGGGGGGGGG...','....GG..GG..G...','....gg..gg..gg..'];
+const KNI=['.www.','.wkw.','.www.','wwbww','.www.','.w.w.','.k.k.'];
+const BOLT=[[0,0],[-1,1],[0,2],[-1,3],[-2,4]];
+
+/* ---- LEFT RAIL ---- */
+// 1) Ryu vs Ken
+let hdX=12,hdHit=0;
+addScene('railL','HADOKEN!!',44,18,5,(c,px,t)=>{
+  for(let x=0;x<44;x++)pd(c,px,x,17,'n');
+  pd(c,px,(t*3)%44,17,'N');
+  blit(c,px,RYU,1,2);
+  if(t%2)pd(c,px,1,4,'R');else pd(c,px,0,5,'R');           // headband flutter
+  if(hdHit>0){
+    blit(c,px,KEN,31,2,t%2?'#ffffff':null);
+    [[29,8,'W'],[30,6,'Y'],[28,10,'Y'],[30,11,'W']].forEach(p2=>pd(c,px,p2[0],p2[1],p2[2]));
+    hdHit--;if(!hdHit)hdX=12;
+  }else{
+    blit(c,px,KEN,31,2);
+    blit(c,px,(t%2?FB1:FB2),hdX,8);
+    pd(c,px,hdX-1,9,'C');pd(c,px,hdX-2,10,'C');
+    hdX+=2;if(hdX>=28)hdHit=4;
+  }
+});
+// 2) Mario · World 1-1
+addScene('railL','WORLD 1-1',20,26,5,(c,px,t)=>{
+  for(let x=0;x<20;x++){pd(c,px,x,24,'N');pd(c,px,x,25,'n');if(x%4===1)pd(c,px,x,25,'K')}
+  const ph=t%22;
+  const jump=[0,0,0,0,0,0,0,1,2,3,3,2,1,0,0,0,0,0,0,0,0,0][ph];
+  const bump=(ph===9||ph===10)?1:0;
+  blit(c,px,QB,8,4-bump);
+  if(ph>=9&&ph<=13)blit(c,px,(ph%2?CO1:CO2),9,0);
+  if(ph===9){pd(c,px,8,0,'W');pd(c,px,12,1,'W')}
+  blit(c,px,MAR,6,11-jump);
+});
+// 3) Contra spread gun
+addScene('railL','SPREAD GUN',34,17,5,(c,px,t)=>{
+  for(let x=0;x<34;x++)pd(c,px,x,16,'g');
+  [3,9,22,30].forEach((x,i)=>{if((t+i)%2)pd(c,px,x,15,'G')});
+  blit(c,px,BILL,1,1);
+  if(t%3<2){pd(c,px,15,8,'Y');pd(c,px,16,8,'O');pd(c,px,15,7,'O');pd(c,px,15,9,'O')}
+  const bx=(t*2)%16;
+  [-1,0,1].forEach(s2=>{const x=17+bx,y=8+s2*Math.ceil(bx/5);
+    if(x<34){pd(c,px,x,y,t%2?'R':'O');pd(c,px,x-1,y,'r')}});
+});
+// 4) Monkey King + extending staff on the nimbus
+const STF=[3,5,8,12,15,12,8,5];
+addScene('railL','RUYI JINGU BANG!',34,17,6,(c,px,t)=>{
+  const bob=t%4<2?0:1, oy=1+bob, ox=11;
+  blit(c,px,WUK,ox,oy);
+  (t%2?[[10,7],[11,6],[11,5]]:[[10,7],[11,7],[12,6]]).forEach(p2=>pd(c,px,ox+p2[0],oy+p2[1],'N')); // tail wag
+  for(let x=3;x<=8;x++)pd(c,px,ox+x-2,oy+13,'y');           // nimbus cloud
+  for(let x=1;x<=10;x++)pd(c,px,ox+x-2,oy+14,'y');
+  pd(c,px,ox+(t%6),oy+14,'W');
+  const L=STF[t%8],cx=17,sy=oy+7;
+  for(let x=cx-L;x<=cx+L;x++)pd(c,px,x,sy,'R');
+  pd(c,px,cx-L,sy,'Y');pd(c,px,cx+L,sy,'Y');
+  pd(c,px,cx-L+1,sy,'Y');pd(c,px,cx+L-1,sy,'Y');
+  if(L>=15){pd(c,px,1,sy,'w');pd(c,px,33,sy,'w')}
+});
+// 5) Frieren casting
+addScene('railL','ZOLTRAAK…',22,19,6,(c,px,t)=>{
+  blit(c,px,FRI,3,1);
+  for(let y=3;y<=16;y++)pd(c,px,16,y,'N');                  // staff
+  pd(c,px,16,0,'Y');pd(c,px,15,1,'Y');pd(c,px,17,1,'Y');pd(c,px,16,2,'Y'); // gold ring
+  pd(c,px,15,8,'S');                                        // hand on staff
+  [[18,3],[14,5],[19,6],[13,2],[17,7],[20,1]].forEach((p2,i)=>{
+    if((t+i*2)%6<3)pd(c,px,p2[0],p2[1],['P','p','Y'][(t+i)%3])});
+});
+
+/* ---- RIGHT RAIL (above timer) ---- */
+// 6) Darth Vader
+addScene('rrA','I AM YOUR FATHER',26,22,5,(c,px,t)=>{
+  [[2,2],[23,4],[5,18],[21,17],[13,1],[8,6]].forEach((p2,i)=>{if((t+i)%7<5)pd(c,px,p2[0],p2[1],'w')});
+  blit(c,px,VAD,6,1);
+  const lit=t%3,cols=['R','G','B'];
+  for(let i=0;i<3;i++)pd(c,px,11+i,12,lit===i?cols[i]:'k'); // chest lights cycle
+  const sx=22;
+  c.fillStyle='rgba(229,48,62,.25)';c.fillRect((sx-1)*px,2*px,3*px,12*px); // saber glow
+  for(let y=3;y<=13;y++)pd(c,px,sx,y,(y+t)%4===0?'W':'R');
+  pd(c,px,sx,2,t%2?'O':'R');
+  pd(c,px,sx,14,'k');pd(c,px,sx,15,'k');
+});
+// 7) Pikachu thunderbolt
+addScene('rrA','PIKAAA—CHUU!!',22,18,5,(c,px,t)=>{
+  const ph=t%12, zap=ph>=5&&ph<=8;
+  if(zap&&t%2){c.fillStyle='rgba(255,244,163,.14)';c.fillRect(0,0,22*px,18*px)}
+  blit(c,px,PIKA,3,5);
+  [[17,10],[18,9],[17,8],[18,7],[19,7],[19,6]].forEach(p2=>pd(c,px,p2[0],p2[1],'Y')); // tail
+  pd(c,px,17,11,'n');
+  if(!zap&&ph<5){
+    if(t%2){pd(c,px,5,13,'W');pd(c,px,15,13,'W')}           // cheeks sparking
+    if(t%3===0){pd(c,px,2,12,'p');pd(c,px,18,12,'p')}
+  }
+  if(zap){
+    const col=t%2?'W':'Y';
+    BOLT.forEach(o=>{pd(c,px,5+o[0],4-o[1],col);pd(c,px,15-o[0],4-o[1],col)});
+    pd(c,px,10,2,col);pd(c,px,10,0,col);
+  }
+});
+
+/* ---- RIGHT RAIL (below timer) ---- */
+// 8) Dragon guarding the gold
+addScene('rrB','DRAGON HOARD · B99',36,20,5,(c,px,t)=>{
+  c.fillStyle='#12161d';c.fillRect(0,0,36*px,20*px);
+  c.fillStyle='#1b212b';
+  for(let y=0;y<20;y+=4)for(let x=((y/4)%2)*3;x<36;x+=6)c.fillRect(x*px,y*px,4*px,2*px);
+  pd(c,px,4,7,'N');pd(c,px,4,8,'N');                        // torch
+  pd(c,px,4,6,t%2?'O':'Y');pd(c,px,4,5,t%2?'Y':'O');if(t%3)pd(c,px,5,5,'O');
+  for(let x=17;x<=33;x++)pd(c,px,x,18,'Y');                 // gold pile
+  for(let x=19;x<=31;x++)pd(c,px,x,17,'Y');
+  for(let x=22;x<=28;x++)pd(c,px,x,16,'Y');
+  const sk=[[21,17],[27,16],[31,17]][t%3];pd(c,px,sk[0],sk[1],'W');
+  for(let x=0;x<36;x++)pd(c,px,x,19,'k');
+  const fire=t%10>=3&&t%10<=7;
+  blit(c,px,KNI,fire?2+(t%2):2,12);                         // brave(?) knight
+  if(fire){pd(c,px,4,10,'W');if(t%2)pd(c,px,4,9,'W')}
+  blit(c,px,DRG,19,7);
+  if(fire){
+    for(let i=1;i<=12;i++){const fx=20-i;if(fx<7)break;
+      const sp=Math.floor(i/4);
+      for(let j=-sp;j<=sp;j++)if((t*5+i*3+j*7)%3<2)pd(c,px,fx,12+j,['Y','O','R'][(i+j+t+30)%3]);
+    }
+  }
+});
+
+setInterval(()=>{pxT++;SCN.forEach(s=>{s.c.clearRect(0,0,s.w*s.px,s.h*s.px);s.fn(s.c,s.px,pxT)})},130);
 </script>
 </body>
 </html>
