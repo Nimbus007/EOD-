@@ -340,6 +340,96 @@ $('taskInput').addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
 function tickClock(){$('clock').textContent=new Date().toLocaleString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 setInterval(tickClock,1000);tickClock();
 saveAll();render();
+/* ---------- 8-bit shift hourglass ---------- */
+const SHIFT_HOURS=9;                       // ← change your shift length here
+const HGS=5,HGW=21,HGH=30,HGCX=10;
+const HGTOPS=[8,8,7,6,5,4,3,3,2,2,1,1];    // half-widths of the top bulb, row by row
+const HGCAP=HGTOPS.reduce((a,h)=>a+2*h+1,0);
+const HGFONT={'0':[7,5,5,5,7],'1':[2,6,2,2,7],'2':[7,1,7,4,7],'3':[7,1,3,1,7],'4':[5,5,7,1,1],
+  '5':[7,4,7,1,7],'6':[7,4,7,5,7],'7':[7,1,2,2,2],'8':[7,5,7,5,7],'9':[7,5,7,1,7],':':[0,2,0,2,0],' ':[0,0,0,0,0]};
+let shiftStart=+localStorage.getItem('eod2_shift_start')||0;
+let hgTick=0,hgSpin=false,hgPrev='';
+const hgCv=$('hgCv');hgCv.width=HGW*HGS;hgCv.height=HGH*HGS;
+const hgCtx=hgCv.getContext('2d');
+
+function hgPx(x,y,c){hgCtx.fillStyle=c;hgCtx.fillRect(x*HGS,y*HGS,HGS,HGS)}
+function hgRowCells(y,h,n){const cells=[[HGCX,y]];for(let i=1;i<=h;i++)cells.push([HGCX+i,y],[HGCX-i,y]);return cells.slice(0,n)}
+
+function drawHG(topU,stream){
+  hgCtx.clearRect(0,0,hgCv.width,hgCv.height);
+  // wooden frame
+  for(let x=0;x<HGW;x++){hgPx(x,0,'#7c4a1e');hgPx(x,1,'#b06a30');hgPx(x,28,'#b06a30');hgPx(x,29,'#7c4a1e')}
+  // glass walls
+  for(let y=2;y<=13;y++){const h=HGTOPS[y-2];hgPx(HGCX-h-1,y,'#7ec8ff');hgPx(HGCX+h+1,y,'#7ec8ff')}
+  for(let y=14;y<=15;y++){hgPx(HGCX-1,y,'#7ec8ff');hgPx(HGCX+1,y,'#7ec8ff')}
+  for(let y=16;y<=27;y++){const h=HGTOPS[27-y];hgPx(HGCX-h-1,y,'#7ec8ff');hgPx(HGCX+h+1,y,'#7ec8ff')}
+  // top sand (drains bottom-up)
+  let u=topU,last=null;
+  for(let y=13;y>=2&&u>0;y--){const h=HGTOPS[y-2],n=Math.min(2*h+1,u);const c=hgRowCells(y,h,n);
+    c.forEach(([x,yy])=>hgPx(x,yy,'#f2c744'));last=c;u-=n}
+  if(last)last.forEach(([x,yy])=>hgPx(x,yy,'#ffe08a'));
+  // bottom sand (pile grows up, peak in the middle)
+  let b=HGCAP-topU,pileTop=28,lastB=null;
+  for(let y=27;y>=16&&b>0;y--){const h=HGTOPS[27-y],n=Math.min(2*h+1,b);const c=hgRowCells(y,h,n);
+    c.forEach(([x,yy])=>hgPx(x,yy,'#f2c744'));lastB=c;pileTop=y;b-=n}
+  if(lastB)lastB.forEach(([x,yy])=>hgPx(x,yy,'#ffe08a'));
+  // falling sand stream (flickers like grains)
+  if(stream&&topU>0){for(let y=14;y<pileTop;y++)if((y+hgTick)%2===0)hgPx(HGCX,y,'#ffd75e')}
+  // glass shine
+  hgPx(3,3,'rgba(255,255,255,.45)');hgPx(4,4,'rgba(255,255,255,.25)');hgPx(3,26,'rgba(255,255,255,.2)');
+}
+
+function fmtHMS(ms){ms=Math.max(0,ms);const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  const p=n=>String(n).padStart(2,'0');return h+':'+p(m)+':'+p(ss)}
+function drawTime(str,color){const cv=$('hgTime'),S=4;cv.width=(str.length*4-1)*S;cv.height=5*S;
+  const c=cv.getContext('2d');c.fillStyle=color;
+  for(let i=0;i<str.length;i++){const g=HGFONT[str[i]]||HGFONT[' '];
+    for(let r=0;r<5;r++)for(let col=0;col<3;col++)if((g[r]>>(2-col))&1)c.fillRect((i*4+col)*S,r*S,S,S)}}
+
+function shiftState(){
+  if(!shiftStart)return{mode:'idle',remain:SHIFT_HOURS*36e5,e:0};
+  const dur=SHIFT_HOURS*36e5,el=Date.now()-shiftStart;
+  if(el>=dur)return{mode:'done',remain:0,e:1};
+  return{mode:'run',remain:dur-el,e:el/dur};
+}
+function renderShift(){
+  const st=shiftState();
+  $('shiftBox').classList.toggle('done',st.mode==='done');
+  let topU=0;
+  if(!hgSpin&&st.mode==='run')topU=Math.ceil(HGCAP*(1-st.e));
+  drawHG(topU,!hgSpin&&st.mode==='run');
+  let tstr,color;
+  if(st.mode==='idle'){tstr=fmtHMS(SHIFT_HOURS*36e5);color='#8b949e'}
+  else if(st.mode==='done'){tstr='0:00:00';color='#f85149'}
+  else{
+    tstr=fmtHMS(st.remain);
+    color=st.remain<6e5?'#f85149':st.remain<36e5?'#d29922':'#3fb950';
+    if(hgTick%4>=2)tstr=tstr.replace(/:/g,' ');   // blinking colons
+  }
+  drawTime(tstr,color);
+  $('sbBtn').style.display=st.mode==='run'?'none':'';
+  const n=$('sbNote');
+  if(st.mode==='idle')n.textContent=SHIFT_HOURS+'-HOUR SHIFT · READY';
+  else if(st.mode==='run')n.textContent='ENDS '+new Date(shiftStart+SHIFT_HOURS*36e5).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  else n.textContent='SHIFT COMPLETE ✔';
+  if(hgPrev==='run'&&st.mode==='done')toast('⏳ Shift complete — time to clock out!');
+  hgPrev=st.mode;
+}
+function startShift(){
+  if(shiftState().mode==='run')return;
+  shiftStart=Date.now();localStorage.setItem('eod2_shift_start',shiftStart);
+  hgSpin=true;$('shiftBox').classList.add('spin');$('sbBtn').style.display='none';
+  setTimeout(()=>{hgSpin=false;$('shiftBox').classList.remove('spin');renderShift()},820);
+  renderShift();toast('Shift started — good luck out there 🫡');
+}
+hgCv.addEventListener('dblclick',()=>{
+  if(shiftStart&&confirm('Reset the shift timer?')){
+    shiftStart=0;localStorage.removeItem('eod2_shift_start');
+    hgSpin=false;$('shiftBox').classList.remove('spin');renderShift();
+  }
+});
+setInterval(()=>{hgTick++;renderShift()},250);
+renderShift();
 </script>
 </body>
 </html>
