@@ -340,7 +340,7 @@ function copyReport(){
   if($('name').value.trim())out+=`\nTechnician: ${$('name').value.trim()}`;
   out+=`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
   out+=`\nSUMMARY: ${tasks.length} tickets — ✅ ${g.resolved.length} Resolved (${rate}%) · 🔄 ${g.ongoing.length} Ongoing · ⏳ ${g.pending.length} Pending\n`;
-  const sec=(icon,label,arr)=>`\n${icon} ${label} (${arr.length})\n`+(arr.map((t,i)=>`${String(i+1).padStart(2,' ')}. ${t.text}${meta(t)}`).join('\n')||' —');
+  const sec=(icon,label,arr)=>`\n${icon} ${label} (${arr.length})\n`+(arr.map(t=>`•  ${t.text}${meta(t)}`).join('\n')||' —');
   out+=sec('✅','RESOLVED',g.resolved)+'\n';
   out+=sec('🔄','ONGOING',g.ongoing)+'\n';
   out+=sec('⏳','PENDING',g.pending);
