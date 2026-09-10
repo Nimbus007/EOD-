@@ -99,17 +99,59 @@ body.clean #exitClean{display:block}
 .shiftbox.done .sb-note{color:var(--green);animation:sbblink 1s steps(2,start) infinite}
 @keyframes sbblink{to{visibility:hidden}}
 
+/* ---------- 8-bit reminder scroll (left rail) ---------- */
+#remRail{display:flex;flex-direction:column;gap:10px}
+#remRail::-webkit-scrollbar{width:6px}
+#remRail::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.scrollWrap{position:relative;flex:1;min-height:260px}
+#scrollCv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none}
+.scrollContent{position:relative;padding:34px 24px 38px;font-family:ui-monospace,Consolas,monospace;color:#5a3d1e}
+.scroll-h{text-align:center;font-size:12px;font-weight:700;letter-spacing:3px;color:#4a2f12}
+.scroll-sub{text-align:center;font-size:9px;letter-spacing:1px;color:#8a6a3d;margin:3px 0 8px;text-transform:uppercase}
+.scroll-hr{height:2px;background:repeating-linear-gradient(90deg,#8a6a3d 0 6px,transparent 6px 10px);margin:0 4px 6px}
+.rem{position:relative;padding:9px 24px 9px 0}
+.rem+.rem{border-top:2px dashed rgba(91,58,26,.38)}
+.rem-title{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a2f12;line-height:1.35;word-break:break-word}
+.rem-date{font-size:10px;letter-spacing:1px;margin:3px 0 5px;color:#7a5a2e;text-transform:uppercase}
+.rem-date b{font-weight:700}
+.d-over b{color:#a02818}.d-today b{color:#b45f0a}.d-soon b{color:#7d6400}.d-later b{color:#7a5a2e}
+.rem-items{list-style:none;margin:0;padding:0}
+.rem-items li{font-size:11px;line-height:1.55;color:#5a3d1e;cursor:pointer;word-break:break-word}
+.rem-items li::before{content:'▸ ';color:#8a6a3d}
+.rem-items li:hover{color:#3b2408}
+.rem-items li.done{color:#a08a5e;text-decoration:line-through}
+.rem-items li.done::before{content:'✔ ';color:#5c7a2e;text-decoration:none}
+.rem-x{position:absolute;top:10px;right:0;width:18px;height:18px;line-height:16px;text-align:center;background:#b3402e;color:#ffe9d9;border:0;box-shadow:0 0 0 2px #4a2f12;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;padding:0}
+.rem-x:hover{background:#d14b36}
+.rem-empty{text-align:center;font-size:10px;letter-spacing:1px;color:#8a6a3d;padding:22px 0;text-transform:uppercase;line-height:2}
+.scroll-add{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#3b2408;background:#c8a05e;border:0;border-radius:2px;padding:9px 0;cursor:pointer;box-shadow:0 3px 0 #6b4423,inset 0 0 0 1px rgba(255,255,255,.35);text-transform:uppercase}
+.scroll-add:hover{background:#d8b26c}
+.scroll-add:active{transform:translateY(3px);box-shadow:0 0 0 #6b4423,inset 0 0 0 1px rgba(255,255,255,.35)}
+
+/* ---------- reminder popup ---------- */
+#remModal{display:none;position:fixed;inset:0;background:rgba(1,4,9,.72);z-index:50;align-items:center;justify-content:center;padding:16px}
+#remModal.open{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--border);border-radius:2px;box-shadow:0 0 0 2px #000,0 6px 0 rgba(0,0,0,.5);width:min(430px,100%);padding:16px}
+.mbox h3{font-family:ui-monospace,Consolas,monospace;font-size:13px;letter-spacing:3px;margin-bottom:12px}
+.mrow{margin-bottom:10px}
+.mrow label{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.mrow input,.mrow textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:9px 10px;font-size:13px;outline:none;color-scheme:dark}
+.mrow textarea{height:96px;resize:vertical;font-family:inherit}
+.mrow input:focus,.mrow textarea:focus{border-color:var(--blue)}
+.mnote{font-size:11px;color:var(--muted);margin:-4px 0 10px}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+
 /* ---------- 8-bit side arcade ---------- */
-#railL,#railR,.pxcol{display:flex;flex-direction:column;align-items:center;gap:14px}
+#railR,.pxcol{display:flex;flex-direction:column;align-items:center;gap:14px}
 .pxscene{background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:6px 6px 4px;box-shadow:0 0 0 2px #000,0 4px 0 rgba(0,0,0,.45)}
 .pxscene canvas{display:block;background:#0a0e14;border:1px solid #000;image-rendering:pixelated;image-rendering:crisp-edges}
 .pxcap{font-family:ui-monospace,Consolas,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:4px}
 @media(min-width:1560px){
-  #railL{position:fixed;left:10px;top:70px;bottom:10px;width:238px;justify-content:space-evenly;overflow:hidden;z-index:5}
+  #remRail{position:fixed;left:10px;top:70px;bottom:10px;width:252px;z-index:5;overflow-y:auto;overscroll-behavior:contain}
   #railR{position:fixed;right:10px;top:70px;bottom:10px;width:238px;justify-content:space-evenly;overflow:hidden;z-index:5}
 }
 @media(max-width:1559px){
-  #railL{display:none}
+  #remRail{width:min(430px,100%);margin:0 auto 20px}
   #railR .pxscene{display:none}
   #railR{margin-bottom:18px}
 }
@@ -132,8 +174,19 @@ body.clean #exitClean{display:block}
     <input class="name" id="name" placeholder="Technician name (click to edit)">
   </div>
 
-  <!-- left arcade rail -->
-  <div id="railL" class="no-shot"></div>
+  <!-- reminders scroll (left rail) -->
+  <div id="remRail" class="no-shot">
+    <div class="scrollWrap" id="scrollWrap">
+      <canvas id="scrollCv"></canvas>
+      <div class="scrollContent">
+        <div class="scroll-h">✦ REMINDERS ✦</div>
+        <div class="scroll-sub">upcoming dates &amp; carry-over work</div>
+        <div class="scroll-hr"></div>
+        <div id="remList"></div>
+      </div>
+    </div>
+    <button class="scroll-add" onclick="openRem()">＋ New reminder</button>
+  </div>
 
   <!-- right arcade rail (holds the shift timer) -->
   <div id="railR" class="no-shot">
@@ -216,11 +269,23 @@ body.clean #exitClean{display:block}
     <div class="tablewrap"><table><thead><tr><th>Status</th><th>ID</th><th>Ticket</th><th>Category</th><th>Site</th><th>Priority</th><th>Logged</th><th class="act"></th></tr></thead><tbody id="listPen"></tbody></table></div>
   </section>
 
-  <footer>EOD Dashboard v2 · tickets are saved in this browser only (nothing is uploaded)</footer>
+  <footer>EOD Dashboard v3 · tickets &amp; reminders are saved in this browser only (nothing is uploaded)</footer>
 </div>
 
 <button class="btn ghost" id="exitClean" onclick="toggleClean()">✏️ Exit screenshot mode</button>
 <div class="toast" id="toast"></div>
+
+<!-- reminder popup -->
+<div id="remModal">
+  <div class="mbox">
+    <h3>📜 NEW REMINDER</h3>
+    <div class="mrow"><label>Title</label><input id="remTitle" type="text" maxlength="80" placeholder="e.g. Test Conversion — PBN"></div>
+    <div class="mrow"><label>Date</label><input id="remDate" type="date"></div>
+    <div class="mrow"><label>Things to do — one per line</label><textarea id="remItems" placeholder="Backup OpenDental DB&#10;Verify Overjet bridge&#10;Confirm with vendor"></textarea></div>
+    <div class="mnote">Tip: on the scroll, click a line to check it off · Ctrl+Enter saves</div>
+    <div class="mbtns"><button class="btn ghost" onclick="closeRem()">Cancel</button><button class="btn" onclick="saveRem()">Save to scroll</button></div>
+  </div>
+</div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -468,7 +533,7 @@ hgCv.addEventListener('dblclick',()=>{
 setInterval(()=>{hgTick++;renderShift()},250);
 renderShift();
 
-/* ================= 8-BIT SIDE ARCADE ================= */
+/* ================= 8-BIT SIDE ARCADE (right rail) ================= */
 const PAL={K:'#101014',k:'#3d434d',W:'#ffffff',w:'#b9c4cf',
 R:'#e5303e',r:'#7f1c26',O:'#ff8c1a',Y:'#ffd23f',y:'#ffedb0',
 G:'#3fb950',g:'#1e6b33',B:'#2f6fce',b:'#173a6e',C:'#63d1ff',
@@ -488,37 +553,6 @@ function addScene(mount,label,w,h,px,fn){
 }
 
 /* ---- sprites ---- */
-const RYU=[
-'....KKKK........','...KKKKKK.......','...RRRRRR.......','...SSSkS........',
-'...SSSSS........','....SSS.........','..WWWWWW........','.WWWWWWWWSS.....',
-'.WWWWWWWWSS.....','..WWWWWW........','..KKKKKK........','..WWW.WW........',
-'..WW...WW.......','..WW....WW......','.SSS....SSS.....'];
-const KEN=[
-'....YYYY....','...YYYYYY...','...YSkSS....','....SSSS....','.....SS.....',
-'...RRRRR....','..SSRRRRR...','..SSRRRRR...','...RRRRR....','...KKKKK....',
-'...RR.RR....','...RR.RR....','..RR...RR...','..RR...RR...','.SSS...SSS..'];
-const FB1=['.CC.','CWWC','CWWC','.CC.'];
-const FB2=['C..C','.WW.','.WW.','C..C'];
-const MAR=[
-'...RRRRR....','..RRRRRRRRR.','..nnnSSkS...','.nSnSSSSkSS.','.nSnnSSSSSS.',
-'..nSSSSSSSS.','...RRBRR....','..RRRBBRRR..','.SSRBBBBRSS.','.SSBBBBBBSS.',
-'...BBBBBB...','...BB..BB...','..nnn..nnn..'];
-const QB=['YYYY','YKKY','YYKY','YYYY'];
-const CO1=['yYy','YYY','YYY','yYy'];
-const CO2=['.Y.','.Y.','.Y.','.Y.'];
-const BILL=[
-'....nnnn......','...nnnnnn.....','...RRRRRR.....','...SSSkS......','...SSSSS......',
-'....SSS.......','..SSSSSSS.....','.SSSSSSSSSkkkk','..SSSSSSS.....','...SSSSS......',
-'...BBBBB......','...BBBBB......','...BB.BB......','...BB.BB......','..nn...nn.....'];
-const WUK=[
-'...NNNNNN...','..NYYYYYYN..','..NSSSSSSN..','..NSkSSkSN..','..NSSSSSSN..',
-'...NSSSSN...','...RRRRRR...','..SRRRRRRS..','...RYYYYR...','...RRRRRR...',
-'...RR..RR...','...RR..RR...','..KK....KK..'];
-const FRI=[
-'...WWWWWW...','..WWWWWWWW..','..WWWWWWWW..','..WSGSSGSW..','..WSSSSSSW..',
-'..W.SSSS.W..','..W.wwww.W..','..Wwwwww.W..','..Wwwwww.W..','..Wwwwww.W..',
-'..Wkwkwk.W..','..Wkwkwk.W..','..W.kkkk.W..','..W..ww..W..','..W..ww..W..',
-'.WW..nn..WW.'];
 const VAD=[
 '.....KKKK.....','....KKKKKK....','...KKKKKKKK...','...KKKKKKKK...','....kKKKKk....',
 '...KkkKKkkK...','...KKKKKKKK...','....KkkkkK....','..KKKKKKKKKK..','.KKKKKKKKKKKK.',
@@ -534,73 +568,8 @@ const DRG=[
 const KNI=['.www.','.wkw.','.www.','wwbww','.www.','.w.w.','.k.k.'];
 const BOLT=[[0,0],[-1,1],[0,2],[-1,3],[-2,4]];
 
-/* ---- LEFT RAIL ---- */
-// 1) Ryu vs Ken
-let hdX=12,hdHit=0;
-addScene('railL','HADOKEN!!',44,18,5,(c,px,t)=>{
-  for(let x=0;x<44;x++)pd(c,px,x,17,'n');
-  pd(c,px,(t*3)%44,17,'N');
-  blit(c,px,RYU,1,2);
-  if(t%2)pd(c,px,1,4,'R');else pd(c,px,0,5,'R');           // headband flutter
-  if(hdHit>0){
-    blit(c,px,KEN,31,2,t%2?'#ffffff':null);
-    [[29,8,'W'],[30,6,'Y'],[28,10,'Y'],[30,11,'W']].forEach(p2=>pd(c,px,p2[0],p2[1],p2[2]));
-    hdHit--;if(!hdHit)hdX=12;
-  }else{
-    blit(c,px,KEN,31,2);
-    blit(c,px,(t%2?FB1:FB2),hdX,8);
-    pd(c,px,hdX-1,9,'C');pd(c,px,hdX-2,10,'C');
-    hdX+=2;if(hdX>=28)hdHit=4;
-  }
-});
-// 2) Mario · World 1-1
-addScene('railL','WORLD 1-1',20,26,5,(c,px,t)=>{
-  for(let x=0;x<20;x++){pd(c,px,x,24,'N');pd(c,px,x,25,'n');if(x%4===1)pd(c,px,x,25,'K')}
-  const ph=t%22;
-  const jump=[0,0,0,0,0,0,0,1,2,3,3,2,1,0,0,0,0,0,0,0,0,0][ph];
-  const bump=(ph===9||ph===10)?1:0;
-  blit(c,px,QB,8,4-bump);
-  if(ph>=9&&ph<=13)blit(c,px,(ph%2?CO1:CO2),9,0);
-  if(ph===9){pd(c,px,8,0,'W');pd(c,px,12,1,'W')}
-  blit(c,px,MAR,6,11-jump);
-});
-// 3) Contra spread gun
-addScene('railL','SPREAD GUN',34,17,5,(c,px,t)=>{
-  for(let x=0;x<34;x++)pd(c,px,x,16,'g');
-  [3,9,22,30].forEach((x,i)=>{if((t+i)%2)pd(c,px,x,15,'G')});
-  blit(c,px,BILL,1,1);
-  if(t%3<2){pd(c,px,15,8,'Y');pd(c,px,16,8,'O');pd(c,px,15,7,'O');pd(c,px,15,9,'O')}
-  const bx=(t*2)%16;
-  [-1,0,1].forEach(s2=>{const x=17+bx,y=8+s2*Math.ceil(bx/5);
-    if(x<34){pd(c,px,x,y,t%2?'R':'O');pd(c,px,x-1,y,'r')}});
-});
-// 4) Monkey King + extending staff on the nimbus
-const STF=[3,5,8,12,15,12,8,5];
-addScene('railL','RUYI JINGU BANG!',34,17,6,(c,px,t)=>{
-  const bob=t%4<2?0:1, oy=1+bob, ox=11;
-  blit(c,px,WUK,ox,oy);
-  (t%2?[[10,7],[11,6],[11,5]]:[[10,7],[11,7],[12,6]]).forEach(p2=>pd(c,px,ox+p2[0],oy+p2[1],'N')); // tail wag
-  for(let x=3;x<=8;x++)pd(c,px,ox+x-2,oy+13,'y');           // nimbus cloud
-  for(let x=1;x<=10;x++)pd(c,px,ox+x-2,oy+14,'y');
-  pd(c,px,ox+(t%6),oy+14,'W');
-  const L=STF[t%8],cx=17,sy=oy+7;
-  for(let x=cx-L;x<=cx+L;x++)pd(c,px,x,sy,'R');
-  pd(c,px,cx-L,sy,'Y');pd(c,px,cx+L,sy,'Y');
-  pd(c,px,cx-L+1,sy,'Y');pd(c,px,cx+L-1,sy,'Y');
-  if(L>=15){pd(c,px,1,sy,'w');pd(c,px,33,sy,'w')}
-});
-// 5) Frieren casting
-addScene('railL','ZOLTRAAK…',22,19,6,(c,px,t)=>{
-  blit(c,px,FRI,3,1);
-  for(let y=3;y<=16;y++)pd(c,px,16,y,'N');                  // staff
-  pd(c,px,16,0,'Y');pd(c,px,15,1,'Y');pd(c,px,17,1,'Y');pd(c,px,16,2,'Y'); // gold ring
-  pd(c,px,15,8,'S');                                        // hand on staff
-  [[18,3],[14,5],[19,6],[13,2],[17,7],[20,1]].forEach((p2,i)=>{
-    if((t+i*2)%6<3)pd(c,px,p2[0],p2[1],['P','p','Y'][(t+i)%3])});
-});
-
 /* ---- RIGHT RAIL (above timer) ---- */
-// 6) Darth Vader
+// Darth Vader
 addScene('rrA','I AM YOUR FATHER',26,22,5,(c,px,t)=>{
   [[2,2],[23,4],[5,18],[21,17],[13,1],[8,6]].forEach((p2,i)=>{if((t+i)%7<5)pd(c,px,p2[0],p2[1],'w')});
   blit(c,px,VAD,6,1);
@@ -612,7 +581,7 @@ addScene('rrA','I AM YOUR FATHER',26,22,5,(c,px,t)=>{
   pd(c,px,sx,2,t%2?'O':'R');
   pd(c,px,sx,14,'k');pd(c,px,sx,15,'k');
 });
-// 7) Pikachu thunderbolt
+// Pikachu thunderbolt
 addScene('rrA','PIKAAA—CHUU!!',22,18,5,(c,px,t)=>{
   const ph=t%12, zap=ph>=5&&ph<=8;
   if(zap&&t%2){c.fillStyle='rgba(255,244,163,.14)';c.fillRect(0,0,22*px,18*px)}
@@ -631,7 +600,7 @@ addScene('rrA','PIKAAA—CHUU!!',22,18,5,(c,px,t)=>{
 });
 
 /* ---- RIGHT RAIL (below timer) ---- */
-// 8) Dragon guarding the gold
+// Dragon guarding the gold
 addScene('rrB','DRAGON HOARD · B99',36,20,5,(c,px,t)=>{
   c.fillStyle='#12161d';c.fillRect(0,0,36*px,20*px);
   c.fillStyle='#1b212b';
@@ -656,6 +625,116 @@ addScene('rrB','DRAGON HOARD · B99',36,20,5,(c,px,t)=>{
 });
 
 setInterval(()=>{pxT++;SCN.forEach(s=>{s.c.clearRect(0,0,s.w*s.px,s.h*s.px);s.fn(s.c,s.px,pxT)})},130);
+
+/* ================= REMINDERS SCROLL (left rail) ================= */
+let rems=JSON.parse(localStorage.getItem('eod2_rems')||'null');
+let remNext=+localStorage.getItem('eod2_rems_next')||1;
+if(!rems){
+  const p2=n=>String(n).padStart(2,'0');
+  const d=new Date();d.setDate(d.getDate()+5);
+  rems=[{id:remNext++,title:'Test Conversion (sample — ✕ me)',
+    date:d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()),
+    items:[{t:'Backup OpenDental DB',done:false},{t:'Confirm schedule with vendor',done:false},{t:'Prep site checklist',done:true}],
+    created:Date.now()}];
+}
+function saveRems(){localStorage.setItem('eod2_rems',JSON.stringify(rems));localStorage.setItem('eod2_rems_next',remNext)}
+
+function openRem(){$('remModal').classList.add('open');$('remTitle').focus()}
+function closeRem(){$('remModal').classList.remove('open');$('remTitle').value='';$('remDate').value='';$('remItems').value=''}
+function saveRem(){
+  const title=$('remTitle').value.trim();
+  if(!title){$('remTitle').focus();return}
+  const items=$('remItems').value.split('\n').map(l=>l.replace(/^[\s•\-\*·▸✔]+/,'').trim()).filter(Boolean).map(t=>({t,done:false}));
+  rems.push({id:remNext++,title,date:$('remDate').value||'',items,created:Date.now()});
+  saveRems();closeRem();renderRems();toast('📜 Reminder added to the scroll');
+}
+function delRem(id){
+  const r=rems.find(x=>x.id===id);if(!r)return;
+  if(!confirm('Done & remove this reminder?\n\n'+r.title))return;
+  rems=rems.filter(x=>x.id!==id);saveRems();renderRems();toast('Reminder cleared ✔');
+}
+function remToggle(id,i){
+  const r=rems.find(x=>x.id===id);if(!r||!r.items[i])return;
+  r.items[i].done=!r.items[i].done;saveRems();renderRems();
+}
+function dInfo(ds){
+  if(!ds)return{cls:'d-later',lab:'NO DATE',word:''};
+  const[y,m,d]=ds.split('-').map(Number);
+  const t0=new Date();t0.setHours(0,0,0,0);
+  const dd=Math.round((new Date(y,m-1,d)-t0)/864e5);
+  const nice=new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase();
+  if(dd<0)return{cls:'d-over',lab:nice,word:'OVERDUE '+(-dd)+'D'};
+  if(dd===0)return{cls:'d-today',lab:nice,word:'TODAY'};
+  if(dd===1)return{cls:'d-soon',lab:nice,word:'TOMORROW'};
+  if(dd<=7)return{cls:'d-soon',lab:nice,word:'IN '+dd+'D'};
+  return{cls:'d-later',lab:nice,word:'IN '+dd+'D'};
+}
+function renderRems(){
+  const list=[...rems].sort((a,b)=>{
+    if(a.date&&b.date)return a.date<b.date?-1:a.date>b.date?1:a.created-b.created;
+    if(a.date)return -1;
+    if(b.date)return 1;
+    return a.created-b.created;
+  });
+  $('remList').innerHTML=list.map(r=>{
+    const d=dInfo(r.date);
+    const items=r.items.map((it,i)=>`<li class="${it.done?'done':''}" title="Click to check off" onclick="remToggle(${r.id},${i})">${esc(it.t)}</li>`).join('');
+    return `<div class="rem">
+      <button class="rem-x" title="Done — remove" onclick="delRem(${r.id})">✕</button>
+      <div class="rem-title">${esc(r.title)}</div>
+      <div class="rem-date ${d.cls}">${d.lab}${d.word?' · <b>'+d.word+'</b>':''}</div>
+      ${items?'<ul class="rem-items">'+items+'</ul>':''}
+    </div>`;
+  }).join('')||'<div class="rem-empty">— nothing scheduled —<br>press “＋ new reminder”</div>';
+  fitScroll();
+}
+
+/* ---- pixel parchment (drawn to fit content) ---- */
+const sCv=$('scrollCv'),sCx=sCv.getContext('2d');
+function h2(x,y){let h=(x*374761393+y*668265263)>>>0;h^=h>>>13;h=(h*1274126177)>>>0;h^=h>>>16;return h/4294967296}
+function fitScroll(){requestAnimationFrame(()=>{
+  const w=$('scrollWrap'),cw=w.clientWidth,ch=w.clientHeight;
+  if(!cw||!ch)return;
+  if(sCv.width!==cw||sCv.height!==ch){sCv.width=cw;sCv.height=ch}
+  const S=4,W=Math.floor(cw/S),H=Math.floor(ch/S);
+  const ox=(cw-W*S)>>1,oy=(ch-H*S)>>1;
+  const P=(x,y,c)=>{sCx.fillStyle=c;sCx.fillRect(ox+x*S,oy+y*S,S,S)};
+  sCx.clearRect(0,0,cw,ch);
+  const INK='#5b3a1a',PAP='#ddb97d',SPK='#c09155',LIT='#efd9a6',ROL='#c9a05f',RSH='#a97f43';
+  const bx0=3,bx1=W-4;
+  // parchment body with ragged, speckled edges
+  for(let y=3;y<=H-4;y++){
+    const x0=bx0+(h2(11,y)<.5?0:1), x1=bx1-(h2(23,y)<.5?0:1);
+    P(x0-1,y,INK);P(x1+1,y,INK);
+    for(let x=x0;x<=x1;x++){
+      const r=h2(x,y);let c=PAP;
+      const e=Math.min(x-x0,x1-x,y-3,H-4-y);
+      if(e<3&&r<.26-e*.08)c=SPK;
+      else if(r>.988)c=SPK;
+      else if(r<.005)c=LIT;
+      P(x,y,c);
+    }
+  }
+  // rolled wooden ends (top & bottom), slightly wider than the paper
+  const roll=yt=>{
+    for(let x=1;x<=W-2;x++){
+      P(x,yt,INK);P(x,yt+4,INK);
+      P(x,yt+1,h2(x,yt+51)>.6?LIT:ROL);
+      P(x,yt+2,h2(x,yt+52)>.9?SPK:ROL);
+      P(x,yt+3,RSH);
+    }
+    [0,W-1].forEach(cx=>{P(cx,yt+1,INK);P(cx,yt+2,INK);P(cx,yt+3,INK)});
+    P(1,yt+1,RSH);P(W-2,yt+1,RSH);P(1,yt+3,'#7c5a2e');P(W-2,yt+3,'#7c5a2e');
+  };
+  roll(1);roll(H-6);
+})}
+new ResizeObserver(fitScroll).observe($('scrollWrap'));
+
+$('remModal').addEventListener('click',e=>{if(e.target.id==='remModal')closeRem()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('remModal').classList.contains('open'))closeRem()});
+$('remTitle').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('remDate').focus()}});
+$('remItems').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))saveRem()});
+renderRems();
 </script>
 </body>
 </html>
