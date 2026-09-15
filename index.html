@@ -148,12 +148,15 @@ body.clean #exitClean{display:block}
 .pxcap{font-family:ui-monospace,Consolas,monospace;font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:4px}
 @media(min-width:1560px){
   #remRail{position:fixed;left:10px;top:70px;bottom:10px;width:252px;z-index:5;overflow-y:auto;overscroll-behavior:contain}
-  #railR{position:fixed;right:10px;top:70px;bottom:10px;width:238px;justify-content:space-evenly;overflow:hidden;z-index:5}
+  #railR{position:fixed;right:10px;top:70px;bottom:10px;width:238px;justify-content:space-evenly;overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain;z-index:5}
+  #railR::-webkit-scrollbar{display:none}
 }
 @media(max-width:1559px){
   #remRail{width:min(430px,100%);margin:0 auto 20px}
+  #railR{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:18px}
+  #railR .pxcol{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:10px}
   #railR .pxscene{display:none}
-  #railR{margin-bottom:18px}
+  #railR .pxscene.clockscene{display:block}
 }
 @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.k-p{grid-column:span 2}}
 </style>
@@ -188,7 +191,7 @@ body.clean #exitClean{display:block}
     <button class="scroll-add" onclick="openRem()">＋ New reminder</button>
   </div>
 
-  <!-- right arcade rail (holds the shift timer) -->
+  <!-- right arcade rail (state clocks + shift timer) -->
   <div id="railR" class="no-shot">
     <div id="rrA" class="pxcol"></div>
     <div class="shiftbox" id="shiftBox">
@@ -550,56 +553,168 @@ function addScene(mount,label,w,h,px,fn){
   const capEl=document.createElement('div');capEl.className='pxcap';capEl.textContent=label;
   box.append(cv,capEl);$(mount).append(box);
   SCN.push({c:cv.getContext('2d'),w,h,px,fn});
+  return{box,cv,cap:capEl};
 }
 
 /* ---- sprites ---- */
-const VAD=[
-'.....KKKK.....','....KKKKKK....','...KKKKKKKK...','...KKKKKKKK...','....kKKKKk....',
-'...KkkKKkkK...','...KKKKKKKK...','....KkkkkK....','..KKKKKKKKKK..','.KKKKKKKKKKKK.',
-'.KKKKKKKKKKKK.','.KKKkRGBkKKKK.','.KKKKKKKKKKKK.','.KKKKKKKKKKKK.','.KK.KKKKKK.KK.',
-'.KK.KKKKKK.KK.','.KK..KKKK..KK.','....KK..KK....','....KK..KK....','...KKK..KKK...'];
-const PIKA=[
-'..K.........K..','..KK.......KK..','...KY.....YK...','...YY.....YY...','...YYYYYYYYY...',
-'..YYYYYYYYYYY..','..YKYYYYYYYKY..','..YYYYYYYYYYY..','..RRYYYkYYYRR..','..YYYYYYYYYYY..',
-'...YYYYYYYYY...','....YY...YY....','...YYY...YYY...'];
 const DRG=[
 '......gg....gg..','.....gGGg..gGGg.','..GGG...GGGGGG..','.GGRGG..GGGGGG..',
 '.GGGG..GGGGGGG..','..GG..GGGGGGGG..','...GGGGGGGGGG...','....GG..GG..G...','....gg..gg..gg..'];
 const KNI=['.www.','.wkw.','.www.','wwbww','.www.','.w.w.','.k.k.'];
-const BOLT=[[0,0],[-1,1],[0,2],[-1,3],[-2,4]];
 
-/* ---- RIGHT RAIL (above timer) ---- */
-// Darth Vader
-addScene('rrA','I AM YOUR FATHER',26,22,5,(c,px,t)=>{
-  [[2,2],[23,4],[5,18],[21,17],[13,1],[8,6]].forEach((p2,i)=>{if((t+i)%7<5)pd(c,px,p2[0],p2[1],'w')});
-  blit(c,px,VAD,6,1);
-  const lit=t%3,cols=['R','G','B'];
-  for(let i=0;i<3;i++)pd(c,px,11+i,12,lit===i?cols[i]:'k'); // chest lights cycle
-  const sx=22;
-  c.fillStyle='rgba(229,48,62,.25)';c.fillRect((sx-1)*px,2*px,3*px,12*px); // saber glow
-  for(let y=3;y<=13;y++)pd(c,px,sx,y,(y+t)%4===0?'W':'R');
-  pd(c,px,sx,2,t%2?'O':'R');
-  pd(c,px,sx,14,'k');pd(c,px,sx,15,'k');
-});
-// Pikachu thunderbolt
-addScene('rrA','PIKAAA—CHUU!!',22,18,5,(c,px,t)=>{
-  const ph=t%12, zap=ph>=5&&ph<=8;
-  if(zap&&t%2){c.fillStyle='rgba(255,244,163,.14)';c.fillRect(0,0,22*px,18*px)}
-  blit(c,px,PIKA,3,5);
-  [[17,10],[18,9],[17,8],[18,7],[19,7],[19,6]].forEach(p2=>pd(c,px,p2[0],p2[1],'Y')); // tail
-  pd(c,px,17,11,'n');
-  if(!zap&&ph<5){
-    if(t%2){pd(c,px,5,13,'W');pd(c,px,15,13,'W')}           // cheeks sparking
-    if(t%3===0){pd(c,px,2,12,'p');pd(c,px,18,12,'p')}
-  }
-  if(zap){
-    const col=t%2?'W':'Y';
-    BOLT.forEach(o=>{pd(c,px,5+o[0],4-o[1],col);pd(c,px,15-o[0],4-o[1],col)});
-    pd(c,px,10,2,col);pd(c,px,10,0,col);
-  }
-});
+/* ================= 8-BIT STATE CLOCKS ================= */
+/* Alaska · Washington · Nevada above the shift timer, California · Michigan below.
+   Each is a live pixel diorama: sky, sun/moon and scenery follow that state's local time. */
+const PXA={A:[2,5,7,5,5],B:[6,5,6,5,6],C:[3,4,4,4,3],D:[6,5,5,5,6],E:[7,4,6,4,7],F:[7,4,6,4,4],
+G:[3,4,5,5,3],H:[5,5,7,5,5],I:[7,2,2,2,7],K:[5,6,4,6,5],L:[4,4,4,4,7],M:[5,7,5,5,5],
+N:[6,5,5,5,5],O:[7,5,5,5,7],P:[6,5,6,4,4],R:[6,5,6,5,5],S:[3,4,2,1,6],T:[7,2,2,2,2],
+U:[5,5,5,5,7],V:[5,5,5,5,2],W:[5,5,5,7,5],Y:[5,5,2,2,2]};
+const PXG=ch=>HGFONT[ch]||PXA[(ch||' ').toUpperCase()]||HGFONT[' '];
+function pxText(c,px,str,x,y,col){
+  for(let i=0;i<str.length;i++){const g=PXG(str[i]);
+    for(let r=0;r<5;r++)for(let k=0;k<3;k++)if((g[r]>>(2-k))&1)pd(c,px,x+i*4+k,y+r,col)}
+}
+const TZC={};
+function tzNow(tz){
+  const now=Date.now(),cc=TZC[tz];
+  if(cc&&now-cc.at<1000)return cc;
+  const o={};
+  new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,hour:'2-digit',minute:'2-digit'})
+    .formatToParts(new Date()).forEach(p=>{if(p.type!=='literal')o[p.type]=p.value});
+  const h=(+o.hour)%24,m=+o.minute;
+  return TZC[tz]={at:now,h,m,h12:(h%12)||12,ap:h<12?'AM':'PM'};
+}
+function tzAbbr(tz){
+  try{return (new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'short'})
+    .formatToParts(new Date()).find(x=>x.type==='timeZoneName')||{}).value||''}
+  catch(e){return''}
+}
+const phaseOf=h=>h>=7&&h<17?'day':h>=5&&h<7?'dawn':h>=17&&h<20?'dusk':'night';
 
-/* ---- RIGHT RAIL (below timer) ---- */
+function ckSky(c,px,ph,t,seed){
+  const B={day:['#123055','#173d6d','#1d4a82'],
+           dawn:['#170f2f','#3a2148','#8a4130'],
+           dusk:['#130b27','#361744','#7c2b20','#b04b1e'],
+           night:['#04060f','#070b18','#0b1022']}[ph];
+  for(let y=0;y<10;y++){c.fillStyle=B[Math.min(B.length-1,Math.floor(y/10*B.length))];c.fillRect(0,y*px,44*px,px)}
+  if(ph==='night')for(let i=0;i<12;i++){
+    const sx=Math.floor(h2(i*3+1,seed)*44),sy=Math.floor(h2(i*7+2,seed)*7);
+    if((t+i)%11<9)pd(c,px,sx,sy,(t*2+i)%17===0?'W':'w');
+  }
+}
+function ckOrb(c,px,t,tm,ph){
+  if(ph!=='night'){
+    const sx=Math.max(2,Math.min(40,2+Math.round((tm.h+tm.m/60-5)/14*38)));
+    const sc=ph==='day'?'Y':'O';
+    pd(c,px,sx,1,sc);pd(c,px,sx+1,1,sc);pd(c,px,sx,2,sc);pd(c,px,sx+1,2,sc);
+    if(t%2){pd(c,px,sx-1,1,sc);pd(c,px,sx+2,2,sc)}else{pd(c,px,sx,0,sc);pd(c,px,sx+1,3,sc)}
+  }else{
+    const nf=((tm.h>=20?tm.h-20:tm.h+4)+tm.m/60)/9;
+    const mx=Math.max(2,Math.min(40,2+Math.round(nf*38)));
+    pd(c,px,mx,1,'w');pd(c,px,mx+1,1,'w');pd(c,px,mx,2,'w');pd(c,px,mx+1,2,'#333a44');
+    if(t%9<2)pd(c,px,mx+3,0,'W');
+  }
+}
+const CKART={
+  /* Alaska — aurora over snowy peaks */
+  ak:(c,px,t,tm,ph)=>{
+    if(ph==='night')for(let x=0;x<44;x++){
+      const yb=1+Math.round(1.6+1.6*Math.sin(x*.42+t*.22));
+      for(let k=0;k<3;k++){const yy=yb+k;
+        if(yy>=0&&yy<8&&(x+k+t)%4)pd(c,px,x,yy,['#2fbf71','#35d0c0','#7d5fd0'][(Math.floor(x/7)+k)%3])}
+    }
+    for(let y=10;y<13;y++)for(let x=0;x<44;x++)pd(c,px,x,y,h2(x,y+9)<.12?'#b9c8d6':'#e3ecf4');
+    const mtn=(bx,ht)=>{for(let i=0;i<ht;i++){const yy=10-ht+i;
+      for(let x=bx-i;x<=bx+i;x++)if(x>=0&&x<44)pd(c,px,x,yy,i<2?'#eef4fa':(h2(x,yy)<.2?'#2b3542':'#1c242e'))}};
+    mtn(6,6);mtn(13,4);mtn(39,3);
+  },
+  /* Washington — rain, evergreens & the Needle */
+  wa:(c,px,t,tm,ph)=>{
+    for(let i=0;i<5;i++){const cx=(Math.floor(h2(i,3)*44)+Math.floor(t/7))%44,cy=i%2;
+      [[0,0],[1,0],[2,0],[3,0],[1,-1],[2,-1]].forEach(o=>{const X=(cx+o[0])%44,Y=cy+1+o[1];
+        if(Y>=0)pd(c,px,X,Y,ph==='night'?'#232c36':'#4e5b66')})}
+    for(let y=10;y<13;y++)for(let x=0;x<44;x++)pd(c,px,x,y,h2(x,y+21)<.15?'#143019':'#0d2212');
+    for(let y=6;y<=9;y++)pd(c,px,4,y,'w');
+    pd(c,px,3,9,'w');pd(c,px,5,9,'w');
+    [[4,3],[3,4],[4,4],[5,4],[2,5],[3,5],[4,5],[5,5],[6,5]].forEach(q=>pd(c,px,q[0],q[1],'w'));
+    if(ph==='night'||ph==='dusk'){pd(c,px,3,5,'Y');pd(c,px,5,5,'Y')}else{pd(c,px,3,5,'k');pd(c,px,5,5,'k')}
+    const tree=bx=>{pd(c,px,bx,6,'G');for(let k=-1;k<=1;k++)pd(c,px,bx+k,7,'g');
+      for(let k=-2;k<=2;k++)pd(c,px,bx+k,8,k?'g':'G');pd(c,px,bx,9,'n')};
+    tree(10);tree(14);
+    for(let i=0;i<13;i++){const rx=Math.floor(h2(i,7)*44),ry=(Math.floor(h2(i,11)*13)+t*2+i)%14;
+      if(ry<10)pd(c,px,rx,ry,'#5f9fc4');else if(ry===10&&(t+i)%2)pd(c,px,rx,10,'C')}
+  },
+  /* Nevada — desert, neon & a rolling tumbleweed */
+  nv:(c,px,t,tm,ph)=>{
+    for(let y=10;y<13;y++)for(let x=0;x<44;x++)pd(c,px,x,y,h2(x,y+31)<.14?'s':'S');
+    for(let y=6;y<=9;y++)pd(c,px,5,y,'G');
+    pd(c,px,3,6,'G');pd(c,px,3,7,'G');pd(c,px,4,7,'G');
+    pd(c,px,7,7,'G');pd(c,px,7,8,'G');pd(c,px,6,8,'G');
+    pd(c,px,5,6,'#7ed491');
+    if(ph==='night'||ph==='dusk'){const ncol=['P','C','Y'][t%3];
+      [[10,2],[9,3],[11,3],[10,4]].forEach(q=>pd(c,px,q[0],q[1],ncol));pd(c,px,10,3,'W')}
+    const twx=(t%52)-4;
+    [[0,0],[1,0],[0,1],[1,1]].forEach((o,i)=>{const X=twx+o[0];
+      if(X>=0&&X<44)pd(c,px,X,9+o[1],(t+i)%2?'N':'#9a7a4a')});
+  },
+  /* California — palm, beach & sparkling ocean */
+  ca:(c,px,t,tm,ph)=>{
+    for(let y=10;y<13;y++)for(let x=0;x<44;x++){
+      if(x>=17)pd(c,px,x,y,(x*3+y*5+t)%11===0?'C':(y===10?'#1d5f9e':'#164a80'));
+      else pd(c,px,x,y,h2(x,y+41)<.15?'#c9a05f':'#e8cf9a')}
+    for(let y=10;y<13;y++)if((t+y)%3)pd(c,px,17,y,'w');
+    [[4,9],[4,8],[5,7],[5,6],[6,5],[6,4]].forEach(q=>pd(c,px,q[0],q[1],'N'));
+    [[6,2],[5,2],[7,2],[4,3],[8,3],[3,4],[9,4],[5,3],[7,3]].forEach(q=>pd(c,px,q[0],q[1],'G'));
+    pd(c,px,6,3,'g');
+  },
+  /* Michigan — Great Lakes lighthouse with sweeping beam */
+  mi:(c,px,t,tm,ph)=>{
+    for(let y=10;y<13;y++)for(let x=0;x<44;x++)
+      pd(c,px,x,y,(x*7+y*3+t)%13===0?'C':(y===10?'#17406f':'#0f2e57'));
+    for(let x=1;x<=7;x++)pd(c,px,x,10,'#39424e');
+    pd(c,px,2,9,'#39424e');pd(c,px,6,9,'#39424e');
+    for(let y=4;y<=9;y++){const col=y%2?'#e5303e':'#f2f5f8';for(let x=3;x<=5;x++)pd(c,px,x,y,col)}
+    pd(c,px,3,3,'k');pd(c,px,5,3,'k');pd(c,px,4,3,(t%3)?'Y':'#8a6a00');
+    pd(c,px,4,2,'R');
+    const side=Math.floor(t/4)%2;
+    if(t%4<3){const L=ph==='night'?8:5;
+      for(let i=1;i<=L;i++){const bx=side?5+i:3-i;
+        if(bx>=0&&bx<44&&(i+t)%3)pd(c,px,bx,3,i<4?'Y':'y');
+        if(i>2&&bx>=0&&bx<44&&(i+t)%3)pd(c,px,bx,2,'y');
+      }
+    }
+  }
+};
+function drawTimeBlock(c,px,t,tm){
+  let ts=tm.h12+':'+String(tm.m).padStart(2,'0');
+  if(t%8>=4)ts=ts.replace(':',' ');
+  const full=ts+' '+tm.ap,tx=44-2-(full.length*4-1),ty=4;
+  [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].forEach(o=>pxText(c,px,full,tx+o[0],ty+o[1],'#03050a'));
+  pxText(c,px,ts,tx,ty,'Y');
+  pxText(c,px,tm.ap,tx+(ts.length+1)*4,ty,'w');
+}
+function drawClock(c,px,t,cfg){
+  const tm=tzNow(cfg.tz),ph=phaseOf(tm.h);
+  ckSky(c,px,ph,t,cfg.seed);
+  ckOrb(c,px,t,tm,ph);
+  CKART[cfg.art](c,px,t,tm,ph);
+  drawTimeBlock(c,px,t,tm);
+}
+function clockScene(cfg){
+  const r=addScene(cfg.mount,cfg.name,44,13,5,(c,px,t)=>drawClock(c,px,t,cfg));
+  r.box.classList.add('clockscene');
+  const z=tzAbbr(cfg.tz);if(z)r.cap.textContent=cfg.name+' · '+z;
+}
+const CLOCKS=[
+  {name:'ALASKA',tz:'America/Anchorage',art:'ak',seed:11,mount:'rrA'},
+  {name:'WASHINGTON',tz:'America/Los_Angeles',art:'wa',seed:23,mount:'rrA'},
+  {name:'NEVADA',tz:'America/Los_Angeles',art:'nv',seed:37,mount:'rrA'},
+  {name:'CALIFORNIA',tz:'America/Los_Angeles',art:'ca',seed:51,mount:'rrB'},
+  {name:'MICHIGAN',tz:'America/Detroit',art:'mi',seed:67,mount:'rrB'}
+];
+CLOCKS.forEach(clockScene);
+
+/* ---- RIGHT RAIL (below the clocks) ---- */
 // Dragon guarding the gold
 addScene('rrB','DRAGON HOARD · B99',36,20,5,(c,px,t)=>{
   c.fillStyle='#12161d';c.fillRect(0,0,36*px,20*px);
@@ -685,7 +800,7 @@ function renderRems(){
       <div class="rem-date ${d.cls}">${d.lab}${d.word?' · <b>'+d.word+'</b>':''}</div>
       ${items?'<ul class="rem-items">'+items+'</ul>':''}
     </div>`;
-  }).join('')||'<div class="rem-empty">— nothing scheduled —<br>press “＋ new reminder”</div>';
+  }).join('')||'<div class="rem-empty">— nothing scheduled —<br>press "＋ new reminder"</div>';
   fitScroll();
 }
 
