@@ -174,31 +174,31 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
 @keyframes sbblink{to{visibility:hidden}}
 
 /* ---------- reminder scroll (now inside a popup) ---------- */
-.scrollWrap{position:relative;min-height:260px}
+.scrollWrap{position:relative;min-height:380px}
 #scrollCv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none}
-.scrollContent{position:relative;padding:34px 24px 38px;font-family:ui-monospace,Consolas,monospace;color:#5a3d1e}
-.scroll-h{text-align:center;font-size:12px;font-weight:700;letter-spacing:3px;color:#4a2f12}
-.scroll-sub{text-align:center;font-size:9px;letter-spacing:1px;color:#8a6a3d;margin:3px 0 8px;text-transform:uppercase}
-.scroll-hr{height:2px;background:repeating-linear-gradient(90deg,#8a6a3d 0 6px,transparent 6px 10px);margin:0 4px 6px}
-.rem{position:relative;padding:9px 24px 9px 0}
-.rem+.rem{border-top:2px dashed rgba(91,58,26,.38)}
-.rem-title{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4a2f12;line-height:1.35;word-break:break-word}
-.rem-date{font-size:10px;letter-spacing:1px;margin:3px 0 5px;color:#7a5a2e;text-transform:uppercase}
-.rem-date b{font-weight:700}
-.d-over b{color:#a02818}.d-today b{color:#b45f0a}.d-soon b{color:#7d6400}.d-later b{color:#7a5a2e}
-.rem-by{font-size:9px;letter-spacing:1px;color:#8a6a3d;margin:-2px 0 5px;text-transform:uppercase}
+.scrollContent{position:relative;padding:54px 48px 58px;font-family:ui-monospace,Consolas,monospace;color:#2b1708;font-weight:700}
+.scroll-h{text-align:center;font-size:24px;font-weight:800;letter-spacing:5px;color:#2b1708}
+.scroll-sub{text-align:center;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#5c4020;margin:6px 0 14px;text-transform:uppercase}
+.scroll-hr{height:3px;background:repeating-linear-gradient(90deg,#5c4020 0 8px,transparent 8px 14px);margin:0 4px 12px}
+.rem{position:relative;padding:16px 44px 16px 0}
+.rem+.rem{border-top:3px dashed rgba(60,36,12,.5)}
+.rem-title{font-size:20px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#2b1708;line-height:1.3;word-break:break-word}
+.rem-date{font-size:15px;font-weight:800;letter-spacing:1px;margin:6px 0 4px;color:#4a3216;text-transform:uppercase}
+.rem-date b{font-weight:800}
+.d-over b{color:#9c1a0c}.d-today b{color:#a34d00}.d-soon b{color:#6b5500}.d-later b{color:#4a3216}
+.rem-by{font-size:12px;font-weight:700;letter-spacing:1px;color:#5c4020;margin:0 0 10px;text-transform:uppercase}
 .rem-items{list-style:none;margin:0;padding:0}
-.rem-items li{font-size:11px;line-height:1.55;color:#5a3d1e;cursor:pointer;word-break:break-word;transition:transform .12s}
-.rem-items li::before{content:'▸ ';color:#8a6a3d}
-.rem-items li:hover{color:#3b2408;transform:translateX(3px)}
-.rem-items li.done{color:#a08a5e;text-decoration:line-through}
-.rem-items li.done::before{content:'✔ ';color:#5c7a2e;text-decoration:none}
-.rem-x{position:absolute;top:10px;right:0;width:18px;height:18px;line-height:16px;text-align:center;background:#b3402e;color:#ffe9d9;border:0;box-shadow:0 0 0 2px #4a2f12;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;padding:0}
+.rem-items li{font-size:17px;font-weight:700;line-height:1.5;color:#2b1708;cursor:pointer;word-break:break-word;padding:5px 0 5px 4px;border-radius:2px;transition:transform .12s,background .12s}
+.rem-items li::before{content:'▸ ';color:#5c4020}
+.rem-items li:hover{background:rgba(255,255,255,.28);transform:translateX(4px)}
+.rem-items li.done{color:#6b5a3a;text-decoration:line-through;font-weight:600}
+.rem-items li.done::before{content:'✔ ';color:#2f5d12;text-decoration:none}
+.rem-x{position:absolute;top:16px;right:0;width:30px;height:30px;line-height:28px;text-align:center;background:#b3402e;color:#fff;border:0;box-shadow:0 0 0 3px #3a2410;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;padding:0}
 .rem-x:hover{background:#d14b36}
-.rem-empty{text-align:center;font-size:10px;letter-spacing:1px;color:#8a6a3d;padding:22px 0;text-transform:uppercase;line-height:2}
-.scroll-add{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#3b2408;background:#c8a05e;border:0;border-radius:2px;padding:9px 0;cursor:pointer;box-shadow:0 3px 0 #6b4423,inset 0 0 0 1px rgba(255,255,255,.35);text-transform:uppercase;margin-top:10px}
+.rem-empty{text-align:center;font-size:16px;font-weight:700;letter-spacing:1px;color:#4a3216;padding:40px 0;text-transform:uppercase;line-height:2}
+.scroll-add{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:16px;font-weight:800;letter-spacing:2px;color:#2b1708;background:#c8a05e;border:0;border-radius:2px;padding:14px 0;cursor:pointer;box-shadow:0 4px 0 #6b4423,inset 0 0 0 1px rgba(255,255,255,.35);text-transform:uppercase;margin-top:12px}
 .scroll-add:hover{background:#d8b26c}
-.scroll-add:active{transform:translateY(3px);box-shadow:0 0 0 #6b4423,inset 0 0 0 1px rgba(255,255,255,.35)}
+.scroll-add:active{transform:translateY(4px);box-shadow:0 0 0 #6b4423,inset 0 0 0 1px rgba(255,255,255,.35)}
 
 /* ---------- popups ---------- */
 .modal{display:none;position:fixed;inset:0;background:rgba(1,4,9,.72);z-index:50;align-items:center;justify-content:center;padding:16px}
@@ -219,7 +219,7 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
 .msg{min-height:16px;font-size:12px;margin:4px 0 8px}
 .msg.err{color:var(--red)} .msg.ok{color:var(--green)}
 .divider{border:0;border-top:1px solid var(--border);margin:14px 0}
-#remsModal .mbox{background:transparent;border:0;box-shadow:none;padding:0;width:min(460px,100%)}
+#remsModal .mbox{background:transparent;border:0;box-shadow:none;padding:0;width:min(780px,100%);max-height:94vh}
 
 /* ---------- login ---------- */
 #gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -260,6 +260,9 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
   #railR .pxscene.clockscene{display:block}
 }
 @media(max-width:640px){
+  .scrollContent{padding:44px 30px 48px}
+  .scroll-h{font-size:19px;letter-spacing:3px}
+  .rem-title{font-size:17px}.rem-items li{font-size:16px}
   .kpis{grid-template-columns:repeat(2,1fr)}.k-p{grid-column:span 2}
   .sync,.clock{display:none}
   .mgrid{grid-template-columns:1fr}
@@ -492,6 +495,7 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
     <div class="mbtns" style="justify-content:flex-start">
       <button class="btn" onclick="changePw()">Update password</button>
       <button class="btn ghost" onclick="sendReset()">Email me a reset link</button>
+      <button class="btn ghost" onclick="testConn()">Test connection</button>
     </div>
     <hr class="divider">
     <div class="mbtns" style="justify-content:space-between">
@@ -973,6 +977,25 @@ async function changePw(){
     acMsg('Password updated.','ok');
   }catch(e){acMsg(authErr(e),'err')}
 }
+async function testConn(){
+  acMsg('Testing the connection to Firestore…');
+  const ref=F.doc(fb.db,'users',uid,'meta','ping');
+  const limit=new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000));
+  try{
+    await Promise.race([F.getDocFromServer(ref),limit]);
+    acMsg('Connected. Firestore is reachable and your rules allow access. Saved changes will sync shortly.','ok');
+  }catch(e){
+    const c=(e&&e.code)||'unknown';
+    const why={
+      'permission-denied':'The database is there, but your rules block it. In Firebase → Firestore Database → Rules, paste the rules and click Publish.',
+      'not-found':'The Firestore database has not been created. In Firebase → Firestore Database, click Create database (Standard edition, production mode).',
+      'failed-precondition':'The Firestore database has not been created, or the Cloud Firestore API is off. Create it in Firebase → Firestore Database.',
+      'unavailable':'Cannot reach Firestore. Either the database has not been created yet, or an ad blocker, VPN or company firewall is blocking firestore.googleapis.com.',
+      'timeout':'No answer from Firestore after 10 seconds. Most likely the database has not been created, or a blocker/firewall is in the way. Try Brave Shields off, or another browser or network.'
+    }[c]||'Unexpected error.';
+    acMsg('['+c+'] '+why,'err');
+  }
+}
 async function sendReset(){
   try{await A.sendPasswordResetEmail(fb.auth,fb.auth.currentUser.email);acMsg('Reset link sent to '+fb.auth.currentUser.email+'.','ok')}
   catch(e){acMsg(authErr(e),'err')}
@@ -987,7 +1010,7 @@ function setSync(s){
     if(stuck)s='stuck';
     else if(!stuckTimer)stuckTimer=setTimeout(()=>{
       stuck=true;stuckTimer=null;setSync('stuck');
-      toast('Not reaching the database. Check: Firestore created, rules published, ad blocker off.');
+      toast('Not reaching the database. Click your email (top right) → Test connection.');
     },10000);
   }else{clearTimeout(stuckTimer);stuckTimer=null;stuck=false}
   $('syncDot').className='dot-live'+(s==='synced'?'':' '+(s==='stuck'?'offline':s));
