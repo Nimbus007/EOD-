@@ -186,6 +186,7 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
 .rem-date{font-size:10px;letter-spacing:1px;margin:3px 0 5px;color:#7a5a2e;text-transform:uppercase}
 .rem-date b{font-weight:700}
 .d-over b{color:#a02818}.d-today b{color:#b45f0a}.d-soon b{color:#7d6400}.d-later b{color:#7a5a2e}
+.rem-by{font-size:9px;letter-spacing:1px;color:#8a6a3d;margin:-2px 0 5px;text-transform:uppercase}
 .rem-items{list-style:none;margin:0;padding:0}
 .rem-items li{font-size:11px;line-height:1.55;color:#5a3d1e;cursor:pointer;word-break:break-word;transition:transform .12s}
 .rem-items li::before{content:'▸ ';color:#8a6a3d}
@@ -438,7 +439,7 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
       <canvas id="scrollCv"></canvas>
       <div class="scrollContent">
         <div class="scroll-h">✦ REMINDERS ✦</div>
-        <div class="scroll-sub">upcoming dates &amp; carry-over work</div>
+        <div class="scroll-sub">shared with the whole team</div>
         <div class="scroll-hr"></div>
         <div id="remList"></div>
       </div>
@@ -861,6 +862,9 @@ const LB={q:'',status:'',cat:'',site:'',scope:'all',from:'',to:'',res:[],limit:1
 
 const col=n=>F.collection(fb.db,'users',uid,n);
 const dref=(n,id)=>F.doc(fb.db,'users',uid,n,id);
+/* reminders are shared by the whole team: team/main/reminders */
+const rcol=()=>F.collection(fb.db,'team','main','reminders');
+const rdoc=id=>F.doc(fb.db,'team','main','reminders',id);
 
 /* ---------- smart detection ---------- */
 const RULES=[
@@ -977,12 +981,22 @@ async function sendReset(){
 /* =====================================================
    SESSION + LIVE SYNC
    ===================================================== */
+let stuckTimer=null,stuck=false;
 function setSync(s){
-  const d=$('syncDot'),t=$('syncTxt');d.className='dot-live'+(s==='synced'?'':' '+s);
-  t.textContent={synced:'Synced',saving:'Saving…',offline:'Offline — changes will sync'}[s];
+  if(s==='saving'){
+    if(stuck)s='stuck';
+    else if(!stuckTimer)stuckTimer=setTimeout(()=>{
+      stuck=true;stuckTimer=null;setSync('stuck');
+      toast('Not reaching the database. Check: Firestore created, rules published, ad blocker off.');
+    },10000);
+  }else{clearTimeout(stuckTimer);stuckTimer=null;stuck=false}
+  $('syncDot').className='dot-live'+(s==='synced'?'':' '+(s==='stuck'?'offline':s));
+  $('syncTxt').textContent={synced:'Synced',saving:'Saving…',offline:'Offline — changes will sync',stuck:'Not reaching server'}[s];
+  $('syncTxt').title=s==='stuck'?'Your changes are saved in this browser only until the connection to Firestore works.':'';
 }
 function syncErr(e){
   console.error(e);
+  if(e&&(e.code==='failed-precondition'||e.code==='not-found'||e.code==='unavailable'))toast('Firestore is not reachable — make sure the database was created in the Firebase console.');else
   if(e&&e.code==='permission-denied')toast('Permission denied — check your Firestore rules');
   else toast('Sync problem: '+((e&&e.code)||'unknown error'));
 }
@@ -1009,7 +1023,7 @@ function subscribe(){
     render();if(view==='lib')renderLib();
     if(!importChecked){importChecked=true;maybeImport(s.empty)}
   },syncErr));
-  unsubs.push(F.onSnapshot(col('reminders'),s=>{rems=s.docs.map(d=>({id:d.id,...d.data()}));renderRems()},syncErr));
+  unsubs.push(F.onSnapshot(rcol(),s=>{rems=s.docs.map(d=>({id:d.id,...d.data()}));renderRems()},syncErr));
   unsubs.push(F.onSnapshot(col('history'),s=>{hist=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts).slice(0,90);renderHist()},syncErr));
   unsubs.push(F.onSnapshot(F.doc(fb.db,'users',uid,'meta','profile'),s=>{
     const n=$('name');if(s.exists()&&document.activeElement!==n)n.value=s.data().tech||''
@@ -1344,18 +1358,19 @@ function saveRem(){
   const title=$('remTitle').value.trim();
   if(!title){$('remTitle').focus();return}
   const items=$('remItems').value.split('\n').map(l=>l.replace(/^[\s•\-\*·▸✔]+/,'').trim()).filter(Boolean).map(t=>({t,done:false}));
-  F.setDoc(F.doc(col('reminders')),{title,date:$('remDate').value||'',items,created:Date.now()}).catch(syncErr);
+  const by=$('name').value.trim()||(fb.auth.currentUser.email||'').split('@')[0];
+  F.setDoc(F.doc(rcol()),{title,date:$('remDate').value||'',items,created:Date.now(),by}).catch(syncErr);
   closeRem();toast('📜 Reminder added to the scroll');
 }
 function delRem(id){
   const r=rems.find(x=>x.id===id);if(!r)return;
   if(!confirm('Done & remove this reminder?\n\n'+r.title))return;
-  F.deleteDoc(dref('reminders',id)).catch(syncErr);toast('Reminder cleared ✔');
+  F.deleteDoc(rdoc(id)).catch(syncErr);toast('Reminder cleared ✔');
 }
 function remToggle(id,i){
   const r=rems.find(x=>x.id===id);if(!r||!r.items[i])return;
   const items=r.items.map((it,k)=>k===i?{...it,done:!it.done}:it);
-  F.updateDoc(dref('reminders',id),{items}).catch(syncErr);
+  F.updateDoc(rdoc(id),{items}).catch(syncErr);
 }
 function dInfo(ds){
   if(!ds)return{cls:'d-later',lab:'NO DATE',word:'',dd:null};
@@ -1383,6 +1398,7 @@ function renderRems(){
       <button class="rem-x" title="Done — remove" onclick="delRem('${r.id}')">✕</button>
       <div class="rem-title">${esc(r.title)}</div>
       <div class="rem-date ${d.cls}">${d.lab}${d.word?' · <b>'+d.word+'</b>':''}</div>
+      ${r.by?`<div class="rem-by">added by ${esc(r.by)}</div>`:''}
       ${items?'<ul class="rem-items">'+items+'</ul>':''}
     </div>`;
   }).join('')||'<div class="rem-empty">— nothing scheduled —<br>press "＋ new reminder"</div>';
@@ -1412,7 +1428,7 @@ async function importLocal(manual){
   if(manual&&!confirm('Import tickets saved in this browser? Existing cloud tickets are kept, so running this twice creates duplicates.'))return;
   const ops=[];let n=numCursor;
   d.t.forEach(t=>ops.push([F.doc(col('tickets')),{num:t.id||n++,text:t.text,category:t.category||detectCat(t.text),site:t.site||'',priority:t.priority||'normal',status:t.status||'resolved',notes:'',created:t.created||Date.now(),updated:Date.now(),archived:false,closedAt:t.status==='resolved'?(t.created||Date.now()):null}]));
-  d.r.forEach(r=>ops.push([F.doc(col('reminders')),{title:r.title,date:r.date||'',items:r.items||[],created:r.created||Date.now()}]));
+  d.r.forEach(r=>ops.push([F.doc(rcol()),{title:r.title,date:r.date||'',items:r.items||[],created:r.created||Date.now()}]));
   d.h.forEach((h,i)=>ops.push([F.doc(col('history')),{date:h.date,total:h.total,resolved:h.resolved,ongoing:h.ongoing,pending:h.pending,rate:h.rate,ts:Date.now()-i*1000}]));
   try{
     for(let i=0;i<ops.length;i+=400){const b=F.writeBatch(fb.db);ops.slice(i,i+400).forEach(([ref,data])=>b.set(ref,data));await b.commit()}
@@ -1448,8 +1464,8 @@ async function boot(){
     A=authM;F=fsM;
     const app=appM.initializeApp(EOD_CONFIG.firebase);
     let db;
-    try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}
-    catch(e){db=F.getFirestore(app)}
+    try{db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true,localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}
+    catch(e){db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true})}
     fb={app,auth:A.getAuth(app),db};
     A.onAuthStateChanged(fb.auth,u=>{
       if(u){drawLock(true);setTimeout(()=>startSession(u),u&&!uid?450:0)}
