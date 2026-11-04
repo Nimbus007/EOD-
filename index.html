@@ -42,6 +42,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 .tab:active{transform:translateY(0)}
 .tab.on{color:var(--text)}
 .tab-badge{display:inline-block;min-width:18px;padding:1px 5px;margin-left:6px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;text-align:center}
+.tab-badge.pb{background:var(--purple);color:#1a0b2e}
 .ind{position:absolute;bottom:-1px;left:0;height:3px;width:0;background:var(--blue);box-shadow:0 0 8px rgba(88,166,255,.6);transition:left .3s cubic-bezier(.3,1.5,.5,1),width .3s cubic-bezier(.3,1.5,.5,1)}
 .swap{animation:swap .16s ease-out}
 @keyframes swap{from{opacity:.3}to{opacity:1}}
@@ -278,9 +279,16 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
   .bar-row .bl,.bn,.muted,.todo .tag,.day{color:#333!important}
   mark{background:#ffe58f;color:#000}
 }
+
+/* ---------- Super Mario background (subtle, behind everything) ---------- */
+#bgMario{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.42;image-rendering:pixelated;image-rendering:crisp-edges}
+#gate,#app{position:relative;z-index:1}
+:root{--panel:rgba(22,27,34,.9);--panel2:rgba(33,38,45,.92)}
+@media print{#bgMario{display:none}}
 </style>
 </head>
 <body>
+<canvas id="bgMario" aria-hidden="true"></canvas>
 
 <!-- ================= LOGIN ================= -->
 <div id="gate">
@@ -334,7 +342,8 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
   <nav class="tabs no-shot no-print" id="tabs">
     <button class="tab on" data-v="board" onclick="setView('board')">📋 Board</button>
     <button class="tab" data-v="lib" onclick="setView('lib')">🔎 Library &amp; Reports</button>
-    <button class="tab" id="remTab" onclick="openRems()">📜 Reminders<span class="tab-badge" id="remBadge" hidden></span></button>
+    <button class="tab" id="remTab" onclick="openRems('team')">📜 Team Reminders<span class="tab-badge" id="remBadge" hidden></span></button>
+    <button class="tab" id="remTabP" onclick="openRems('personal')">🔒 Personal Reminders<span class="tab-badge pb" id="remBadgeP" hidden></span></button>
     <span class="ind" id="tabInd"></span>
   </nav>
 
@@ -435,14 +444,14 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
 
 <div class="toast" id="toast"></div>
 
-<!-- reminders popup -->
+<!-- reminders popup (used for both Team and Personal) -->
 <div class="modal" id="remsModal">
   <div class="mbox">
     <div class="scrollWrap" id="scrollWrap">
       <canvas id="scrollCv"></canvas>
       <div class="scrollContent">
-        <div class="scroll-h">✦ REMINDERS ✦</div>
-        <div class="scroll-sub">shared with the whole team</div>
+        <div class="scroll-h" id="scrollH">✦ TEAM REMINDERS ✦</div>
+        <div class="scroll-sub" id="scrollSub">shared with the whole team</div>
         <div class="scroll-hr"></div>
         <div id="remList"></div>
       </div>
@@ -455,7 +464,7 @@ mark{background:rgba(210,153,34,.35);color:var(--text);border-radius:2px;padding
 <!-- new reminder popup -->
 <div class="modal" id="remModal">
   <div class="mbox">
-    <h3>📜 NEW REMINDER</h3>
+    <h3 id="remModalH">📜 NEW TEAM REMINDER</h3>
     <div class="mrow"><label>Title</label><input id="remTitle" type="text" maxlength="80" placeholder="e.g. Test Conversion — PBN"></div>
     <div class="mrow"><label>Date</label><input id="remDate" type="date"></div>
     <div class="mrow"><label>Things to do — one per line</label><textarea id="remItems" placeholder="Backup OpenDental DB&#10;Verify Overjet bridge&#10;Confirm with vendor"></textarea></div>
@@ -859,16 +868,24 @@ const CATS=['Dental Apps','Hardware','Software','Network/VPN','Accounts & Access
 const configured=!/YOUR_/.test(EOD_CONFIG.firebase.apiKey);
 
 let fb=null,A=null,F=null,uid=null,unsubs=[];
-let tickets=[],rems=[],hist=[];
+let tickets=[],rems=[],prems=[],hist=[];
 let numCursor=1,query='',catFilter=null,flashId=null,view='board',importChecked=false,tmEditId=null;
+let remMode='team';   // which scroll is open: 'team' (shared) or 'personal' (private to this user)
 let gMode='signin';
 const LB={q:'',status:'',cat:'',site:'',scope:'all',from:'',to:'',res:[],limit:100,toks:[]};
 
 const col=n=>F.collection(fb.db,'users',uid,n);
 const dref=(n,id)=>F.doc(fb.db,'users',uid,n,id);
-/* reminders are shared by the whole team: team/main/reminders */
+/* TEAM reminders are shared by the whole team: team/main/reminders */
 const rcol=()=>F.collection(fb.db,'team','main','reminders');
 const rdoc=id=>F.doc(fb.db,'team','main','reminders',id);
+/* PERSONAL reminders live under the signed-in user only: users/{uid}/personal_reminders */
+const pcol=()=>F.collection(fb.db,'users',uid,'personal_reminders');
+const pdoc=id=>F.doc(fb.db,'users',uid,'personal_reminders',id);
+/* helpers that follow whichever scroll is open */
+const remCol=()=>remMode==='team'?rcol():pcol();
+const remDoc=id=>remMode==='team'?rdoc(id):pdoc(id);
+const curRems=()=>remMode==='team'?rems:prems;
 
 /* ---------- smart detection ---------- */
 const RULES=[
@@ -1033,7 +1050,7 @@ function startSession(u){
 }
 function endSession(){
   unsubs.forEach(f=>f());unsubs=[];uid=null;
-  tickets=[];rems=[];hist=[];
+  tickets=[];rems=[];prems=[];hist=[];
   ['remsModal','remModal','ticketModal','acctModal'].forEach(i=>$(i).classList.remove('open'));
   $('app').hidden=true;$('gate').hidden=false;
   drawLock(false);gSet('signin');setView('board');
@@ -1047,6 +1064,7 @@ function subscribe(){
     if(!importChecked){importChecked=true;maybeImport(s.empty)}
   },syncErr));
   unsubs.push(F.onSnapshot(rcol(),s=>{rems=s.docs.map(d=>({id:d.id,...d.data()}));renderRems()},syncErr));
+  unsubs.push(F.onSnapshot(pcol(),s=>{prems=s.docs.map(d=>({id:d.id,...d.data()}));renderRems()},syncErr));
   unsubs.push(F.onSnapshot(col('history'),s=>{hist=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts).slice(0,90);renderHist()},syncErr));
   unsubs.push(F.onSnapshot(F.doc(fb.db,'users',uid,'meta','profile'),s=>{
     const n=$('name');if(s.exists()&&document.activeElement!==n)n.value=s.data().tech||''
@@ -1371,9 +1389,16 @@ function libCSV(){if(!LB.res.length){toast('Nothing to export');return}downloadC
 function libPrint(){if(view!=='lib')setView('lib');setTimeout(()=>window.print(),80)}
 
 /* =====================================================
-   REMINDERS (popup)
+   REMINDERS (popup) — Team (shared) + Personal (private)
    ===================================================== */
-function openRems(){$('remsModal').classList.add('open');renderRems();fitScroll()}
+function setRemMode(mode){
+  remMode=mode==='personal'?'personal':'team';
+  const team=remMode==='team';
+  $('scrollH').textContent=team?'✦ TEAM REMINDERS ✦':'✦ MY REMINDERS ✦';
+  $('scrollSub').textContent=team?'shared with the whole team':'private · only you can see these';
+  $('remModalH').textContent=team?'📜 NEW TEAM REMINDER':'🔒 NEW PERSONAL REMINDER';
+}
+function openRems(mode){setRemMode(mode);$('remsModal').classList.add('open');renderRems();fitScroll()}
 function closeRems(){$('remsModal').classList.remove('open')}
 function openRem(){$('remModal').classList.add('open');$('remTitle').focus()}
 function closeRem(){$('remModal').classList.remove('open');$('remTitle').value='';$('remDate').value='';$('remItems').value=''}
@@ -1381,19 +1406,20 @@ function saveRem(){
   const title=$('remTitle').value.trim();
   if(!title){$('remTitle').focus();return}
   const items=$('remItems').value.split('\n').map(l=>l.replace(/^[\s•\-\*·▸✔]+/,'').trim()).filter(Boolean).map(t=>({t,done:false}));
-  const by=$('name').value.trim()||(fb.auth.currentUser.email||'').split('@')[0];
-  F.setDoc(F.doc(rcol()),{title,date:$('remDate').value||'',items,created:Date.now(),by}).catch(syncErr);
-  closeRem();toast('📜 Reminder added to the scroll');
+  const data={title,date:$('remDate').value||'',items,created:Date.now()};
+  if(remMode==='team')data.by=$('name').value.trim()||(fb.auth.currentUser.email||'').split('@')[0];
+  F.setDoc(F.doc(remCol()),data).catch(syncErr);
+  closeRem();toast(remMode==='team'?'📜 Reminder added to the team scroll':'🔒 Personal reminder saved');
 }
 function delRem(id){
-  const r=rems.find(x=>x.id===id);if(!r)return;
+  const r=curRems().find(x=>x.id===id);if(!r)return;
   if(!confirm('Done & remove this reminder?\n\n'+r.title))return;
-  F.deleteDoc(rdoc(id)).catch(syncErr);toast('Reminder cleared ✔');
+  F.deleteDoc(remDoc(id)).catch(syncErr);toast('Reminder cleared ✔');
 }
 function remToggle(id,i){
-  const r=rems.find(x=>x.id===id);if(!r||!r.items[i])return;
+  const r=curRems().find(x=>x.id===id);if(!r||!r.items[i])return;
   const items=r.items.map((it,k)=>k===i?{...it,done:!it.done}:it);
-  F.updateDoc(rdoc(id),{items}).catch(syncErr);
+  F.updateDoc(remDoc(id),{items}).catch(syncErr);
 }
 function dInfo(ds){
   if(!ds)return{cls:'d-later',lab:'NO DATE',word:'',dd:null};
@@ -1407,8 +1433,12 @@ function dInfo(ds){
   if(dd<=7)return{cls:'d-soon',lab:nice,word:'IN '+dd+'D',dd};
   return{cls:'d-later',lab:nice,word:'IN '+dd+'D',dd};
 }
+function setBadge(id,arr){
+  const due=arr.filter(r=>{const d=dInfo(r.date);return d.dd!==null&&d.dd<=0}).length;
+  const b=$(id);b.hidden=!due;b.textContent=due;
+}
 function renderRems(){
-  const list=[...rems].sort((a,b)=>{
+  const list=[...curRems()].sort((a,b)=>{
     if(a.date&&b.date)return a.date<b.date?-1:a.date>b.date?1:a.created-b.created;
     if(a.date)return -1;
     if(b.date)return 1;
@@ -1425,8 +1455,7 @@ function renderRems(){
       ${items?'<ul class="rem-items">'+items+'</ul>':''}
     </div>`;
   }).join('')||'<div class="rem-empty">— nothing scheduled —<br>press "＋ new reminder"</div>';
-  const due=rems.filter(r=>{const d=dInfo(r.date);return d.dd!==null&&d.dd<=0}).length;
-  const b=$('remBadge');b.hidden=!due;b.textContent=due;
+  setBadge('remBadge',rems);setBadge('remBadgeP',prems);
   moveInd();fitScroll();
 }
 
@@ -1501,6 +1530,117 @@ async function boot(){
   }
 }
 boot();
+</script>
+
+<!-- ================= SUPER MARIO BACKGROUND ================= -->
+<script>
+(function(){
+const cv=document.getElementById('bgMario'),cx=cv.getContext('2d');
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const U=4;                       // screen pixels per art pixel
+let W=0,H=0,GY=0,stat=null,t=0;
+
+const mk=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'));return c};
+const art=(c,rows,pal)=>rows.forEach((r,y)=>{for(let x=0;x<r.length;x++){const p=pal[r[x]];if(p){c.fillStyle=p;c.fillRect(x,y,1,1)}}});
+
+/* ---- sprites ---- */
+const brick=mk(12,12,c=>{
+  c.fillStyle='#c84c0c';c.fillRect(0,0,12,12);
+  c.fillStyle='#2a0e00';
+  [2,5,8,11].forEach(y=>c.fillRect(0,y,12,1));
+  c.fillRect(5,0,1,2);c.fillRect(2,3,1,2);c.fillRect(8,3,1,2);c.fillRect(5,6,1,2);c.fillRect(2,9,1,2);c.fillRect(8,9,1,2);
+  c.fillStyle='#fcb878';c.fillRect(0,0,12,1);
+});
+const qblk=mk(12,12,c=>{
+  c.fillStyle='#8a3c00';c.fillRect(0,0,12,12);
+  c.fillStyle='#f8a030';c.fillRect(1,1,10,10);
+  c.fillStyle='#8a3c00';[[1,1],[10,1],[1,10],[10,10]].forEach(([x,y])=>c.fillRect(x,y,1,1));
+  c.save();c.translate(4,2);
+  art(c,['.XXX.','X...X','....X','...X.','..X..','.....','..X..'],{X:'#8a3c00'});
+  c.restore();
+});
+const ground=mk(8,8,c=>{
+  c.fillStyle='#d4560e';c.fillRect(0,0,8,8);
+  c.fillStyle='#fcc8a0';c.fillRect(0,0,8,1);
+  c.fillStyle='#2a0e00';c.fillRect(7,0,1,8);c.fillRect(0,7,8,1);c.fillRect(3,3,1,2);
+});
+const cloud=mk(18,11,c=>{
+  [[5,6,4],[9,4,4],[13,6,4]].forEach(([x,y,r])=>{
+    for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++)if(i*i+j*j<=r*r+1){
+      c.fillStyle=(y+j)>=8?'#aee0ff':'#ffffff';c.fillRect(x+i,y+j,1,1)}
+  });
+});
+const goomba=[
+ ['....NNNN....','..NNNNNNNN..','.NNNNNNNNNN.','NNKKNNNNKKNN','NNWWKNNKWWNN','NNWWWNNWWWNN','.NNNNNNNNNN.','...SSSSSS...','..SSSSSSSS..','..SSSSSSSS..','.KKKK..KKKK.'],
+ ['....NNNN....','..NNNNNNNN..','.NNNNNNNNNN.','NNKKNNNNKKNN','NNWWKNNKWWNN','NNWWWNNWWWNN','.NNNNNNNNNN.','...SSSSSS...','..SSSSSSSS..','..SSSSSSSS..','KKKK....KKKK']
+].map(rows=>mk(12,11,c=>art(c,rows,{N:'#a04010',S:'#f8c898',W:'#ffffff',K:'#000000'})));
+const mush=mk(10,9,c=>art(c,[
+ '...OOOO...','..OORROO..','.OORRRROO.','ORROOOORRO','ORROOOORRO','OOOOOOOOOO','..WKWWKW..','..WWWWWW..','...WWWW...'
+],{O:'#f8a030',R:'#d82800',W:'#fff0d8',K:'#000000'}));
+const coin=mk(4,7,c=>{c.fillStyle='#ffd23f';c.fillRect(1,0,2,7);c.fillRect(0,1,4,5);c.fillStyle='#c88a00';c.fillRect(2,1,1,5)});
+
+/* ---- scenery (drawn once per resize) ---- */
+function hill(c,x,base,h,w){
+  for(let r=0;r<h;r++){
+    const half=Math.floor(w/2)-r;if(half<2)break;const y=base-1-r;
+    c.fillStyle='#00a800';c.fillRect(x-half,y,half*2+1,1);
+    c.fillStyle='#003c00';c.fillRect(x-half,y,1,1);c.fillRect(x+half,y,1,1);
+  }
+  c.fillStyle='#003c00';
+  c.fillRect(x-4,base-h*0.55|0,1,3);c.fillRect(x-1,base-h*0.55|0,1,3);
+  c.fillRect(x+3,base-h*0.3|0,1,3);c.fillRect(x+6,base-h*0.3|0,1,3);
+}
+function bush(c,x,base,r){
+  c.fillStyle='#80d010';
+  [[x-r*1.4,r*.8],[x,r],[x+r*1.4,r*.8]].forEach(([bx,br])=>{
+    for(let j=0;j<=br;j++){const half=Math.round(Math.sqrt(br*br-j*j));c.fillRect(Math.round(bx-half),base-1-j,half*2+1,1)}
+  });
+}
+function build(){
+  W=Math.ceil(innerWidth/U);H=Math.ceil(innerHeight/U);
+  cv.width=W;cv.height=H;GY=H-16;
+  stat=mk(W,H,c=>{
+    c.fillStyle='#5c94fc';c.fillRect(0,0,W,H);
+    hill(c,Math.round(W*.07),GY,16,34);
+    hill(c,Math.round(W*.58),GY,11,24);
+    hill(c,Math.round(W*.94),GY,13,28);
+    bush(c,Math.round(W*.28),GY,5);
+    bush(c,Math.round(W*.84),GY,4);
+    for(let y=0;y<2;y++)for(let x=0;x<W;x+=8)c.drawImage(ground,x,GY+y*8);
+  });
+  draw();
+}
+
+/* ---- animated layer ---- */
+const CLOUDS=[[.10,6,.07],[.38,18,.05],[.66,8,.06],[.90,22,.04]];
+const PLAT={fx:.76,dy:34,tiles:'BQBQB'};
+const SINGLES=[{fx:.10,dy:46},{fx:.40,dy:62}];
+function bumpY(i,tt){const p=(tt+i*37)%90;return p<4?[-2,-4,-3,-1][p]:0}
+function coinAt(i,tt){const p=(tt+i*37)%90;return p>=1&&p<12?p:-1}
+function draw(){
+  if(!stat)return;
+  cx.drawImage(stat,0,0);
+  const span=W+40;
+  CLOUDS.forEach(([fx,y,sp])=>{const x=(((W*fx-t*sp)%span)+span)%span-20;cx.drawImage(cloud,Math.round(x),y)});
+  // floating ? blocks
+  let qi=0;
+  SINGLES.forEach(s=>{const x=Math.round(W*s.fx),y=GY-s.dy;drawQ(x,y,qi++)});
+  // platform
+  const px=Math.round(W*PLAT.fx),py=GY-PLAT.dy;
+  [...PLAT.tiles].forEach((k,i)=>{const x=px+i*12;if(k==='B')cx.drawImage(brick,x,py);else drawQ(x,py,qi++)});
+  cx.drawImage(mush,px+12+1,py-9);
+  // goomba walking along the ground
+  const gx=Math.round(W-((t*.28)%(W+30)));
+  cx.drawImage(goomba[(t>>2)&1],gx,GY-11);
+}
+function drawQ(x,y,i){
+  const b=bumpY(i,t);cx.drawImage(qblk,x,y+b);
+  const c=coinAt(i,t);if(c>0)cx.drawImage(coin,x+4,y-6-c);
+}
+build();
+addEventListener('resize',build);
+if(!reduce)setInterval(()=>{if(document.hidden)return;t++;draw()},120);
+})();
 </script>
 </body>
 </html>
