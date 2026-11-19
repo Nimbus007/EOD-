@@ -2045,86 +2045,158 @@ const DK=(()=>{
 })();
 
 /* =====================================================
-   4) POKEMON (GBA era) — trainer wanders the harbor plaza, a shiny Espeon follows
+   4) POKEMON FIRERED — Red wanders a route: rippling lake with a rocky shore,
+      tall grass that rustles when he steps in it, a big tree, round bush and a sand patch
    ===================================================== */
 const POK=(()=>{
   const TS=16;
-  const water=[0,1,2,3].map(f=>mk(16,16,k=>{
-    k.fillStyle='#3a7ad6';k.fillRect(0,0,16,16);
-    for(let x=0;x<16;x++){
-      const a=(x+f*4)%16;if(a<5){k.fillStyle='#6aa6f2';k.fillRect(x,3+(a%2),1,1)}
-      const b=(x+f*4+8)%16;if(b<5){k.fillStyle='#2b60b4';k.fillRect(x,11+(b%2),1,1)}
-    }}));
-  const pave=mk(16,16,k=>{
-    k.fillStyle='#e6ebf1';k.fillRect(0,0,16,16);k.fillStyle='#c4cdd8';
-    for(let y=0;y<16;y++){const z=(y%8)<4?(y%8)*2:(8-(y%8))*2;k.fillRect(z,y,1,1);k.fillRect(z+8,y,1,1)}
-    k.fillStyle='#f6f9fc';for(let y=0;y<16;y+=8)k.fillRect(4,y+1,3,1);
-  });
-  let tw,th,pcx,px0,px1,py0,py1,grid,stat,tr,esp,trail,wait;
   const DX=[0,0,-1,1],DY=[1,-1,0,0];            // 0 down, 1 up, 2 left, 3 right
+
+  /* ---------- helpers ---------- */
+  const ell=(k,x,y,rx,ry,col)=>{
+    x=Math.round(x);y=Math.round(y);rx=Math.max(1,Math.round(rx));ry=Math.max(1,Math.round(ry));
+    k.fillStyle=col;
+    for(let j=-ry;j<=ry;j++){const w=Math.round(rx*Math.sqrt(Math.max(0,1-(j*j)/(ry*ry))));k.fillRect(x-w,y+j,w*2+1,1)}
+  };
+  function bush(k,x,y,rx,ry){
+    ell(k,x,y,rx+2,ry+2,'#1f5224');ell(k,x,y,rx,ry,'#3f9340');
+    ell(k,x,y+ry*.35,rx*.8,ry*.55,'#2f7a30');
+    ell(k,x-2,y-ry*.3,rx*.7,ry*.5,'#5cb64a');
+    ell(k,x-4,y-ry*.5,rx*.35,ry*.25,'#90d860');
+  }
+  function tree(k,X,Y){
+    // trunk + roots
+    k.fillStyle='#4a2a10';k.fillRect(X+31,Y+44,18,22);
+    k.fillStyle='#8a5a2a';k.fillRect(X+33,Y+44,14,22);
+    k.fillStyle='#b07a40';k.fillRect(X+33,Y+44,4,22);
+    k.fillStyle='#5e3a18';k.fillRect(X+44,Y+44,3,22);
+    k.fillStyle='#4a2a10';k.fillRect(X+28,Y+62,24,4);
+    k.fillStyle='#8a5a2a';k.fillRect(X+30,Y+62,20,3);
+    // canopy made of overlapping lobes
+    const L=[[40,26,38,24],[14,35,15,13],[66,35,15,13],[40,10,24,11]];
+    L.forEach(([a,b,rx,ry])=>ell(k,X+a,Y+b,rx+2,ry+2,'#1f5224'));
+    L.forEach(([a,b,rx,ry])=>ell(k,X+a,Y+b,rx,ry,'#3f8f3a'));
+    L.forEach(([a,b,rx,ry])=>ell(k,X+a,Y+b+ry*.3,rx*.8,ry*.5,'#337e30'));
+    L.forEach(([a,b,rx,ry])=>ell(k,X+a-2,Y+b-3,rx*.7,ry*.6,'#58ac46'));
+    L.forEach(([a,b,rx,ry])=>ell(k,X+a-4,Y+b-5,rx*.4,ry*.35,'#86d05a'));
+    const inside=(x,y)=>L.some(([a,b,rx,ry])=>((x-a)/rx)**2+((y-b)/ry)**2<.75);
+    for(let i=0;i<90;i++){
+      const x=4+Math.floor(h2(i,3)*72),y=2+Math.floor(h2(i,5)*50);
+      if(!inside(x,y))continue;
+      k.fillStyle=i%2?'#2f7a30':'#9adc66';k.fillRect(X+x,Y+y,2,1);
+    }
+    // bushes flanking the trunk
+    bush(k,X+20,Y+69,14,9);bush(k,X+60,Y+69,14,9);
+  }
+
+  /* ---------- tiles ---------- */
+  const water=[0,1,2,3].map(f=>mk(16,16,k=>{
+    k.fillStyle='#3b78d2';k.fillRect(0,0,16,16);
+    for(let x=0;x<16;x++)[3,11].forEach(off=>{
+      const y=off+Math.round(2.5*Math.sin((x+f*4)*Math.PI/8));
+      k.fillStyle='#7fb0f4';k.fillRect(x,y,1,1);
+      k.fillStyle='#2a5cb0';k.fillRect(x,y+1,1,1);
+    });
+  }));
+
+  /* tall grass: fronds sheared sideways by `sh` so the tile can sway (-2..2) */
+  const FR=[[4,15,1,3],[6,15,5,0],[10,15,10,0],[12,15,14,3],[3,15,0,9],[13,15,15,9],[8,15,8,4]];
+  const gTile=sh=>mk(16,16,k=>{
+    k.fillStyle='#3f9248';k.fillRect(0,0,16,16);
+    k.fillStyle='#347f3c';for(let x=0;x<16;x+=3)k.fillRect(x,13+(x%2),2,1);
+    const P=(x,y,c)=>{const xx=x+Math.round(sh*(15-y)/15*2);if(xx>=0&&xx<16&&y>=0&&y<16){k.fillStyle=c;k.fillRect(xx,y,1,1)}};
+    const pts=[];
+    FR.forEach(([ox,oy,tx,ty])=>{for(let i=0;i<=20;i++)pts.push([Math.round(ox+(tx-ox)*i/20),Math.round(oy+(ty-oy)*i/20)])});
+    pts.forEach(([x,y])=>{P(x-1,y,'#1f5a2a');P(x,y,'#1f5a2a');P(x+1,y,'#1f5a2a');P(x+2,y,'#1f5a2a')});
+    pts.forEach(([x,y])=>{P(x,y,'#58b858');P(x+1,y,'#3f9a48')});
+    pts.forEach(([x,y],i)=>{if(y<11&&i%2)P(x,y,'#9ee08c')});
+  });
+  const GF=[-2,-1,0,1,2].map(gTile);
+
+  function gnd(k,c,r){
+    const X=c*TS,Y=r*TS;
+    k.fillStyle='#66b870';k.fillRect(X,Y,TS,TS);
+    for(let i=0;i<6;i++){
+      const x=Math.floor(h2(c*31+i*7,r*17+i*3)*14),y=Math.floor(h2(c*13+i*5,r*29+i*11)*14);
+      k.fillStyle=i%2?'#7ccb82':'#559f62';k.fillRect(X+x,Y+y,2,1);
+    }
+  }
+  function sandT(k,c,r,isS){
+    const X=c*TS,Y=r*TS;
+    k.fillStyle='#e8d49a';k.fillRect(X,Y,TS,TS);
+    for(let i=0;i<6;i++){
+      const x=Math.floor(h2(c*37+i*5,r*19+i*9)*14),y=Math.floor(h2(c*23+i*3,r*41+i*7)*14);
+      k.fillStyle=i%2?'#f3e4b4':'#d4bc7c';k.fillRect(X+x,Y+y,2,1);
+    }
+    k.fillStyle='#c9b27a';
+    if(!isS(c,r-1))k.fillRect(X,Y,TS,1);
+    if(!isS(c-1,r))k.fillRect(X,Y,1,TS);
+  }
+
+  /* ---------- state ---------- */
+  let tw,th,wc,wr,grid,stat,tr,wait,rus;
+
+  function trigger(c,r){
+    const hit=(cc,rr,v)=>{if(grid[rr]&&grid[rr][cc]===3)rus[rr*tw+cc]=Math.max(rus[rr*tw+cc],v)};
+    hit(c,r,14);hit(c+1,r,8);hit(c-1,r,8);hit(c,r+1,8);hit(c,r-1,8);
+  }
+  const shear=(c,r)=>{
+    const v=rus[r*tw+c];
+    if(v>0)return(((v>>1)&1)?1:-1)*(v>8?2:1);
+    return Math.round(Math.sin(t*.12+c*.7+r*.45)*.8);
+  };
+  const ring=(c,r)=>c<=wc+6||c>=tw-12||r>=th-4;
+  const walk=(c,r)=>r>=0&&c>=0&&r<th&&c<tw&&(grid[r][c]===1||grid[r][c]===3||grid[r][c]===4)&&ring(c,r);
 
   function init(){
     tw=Math.ceil(W/TS);th=Math.ceil(H/TS);
-    px0=1;px1=tw-2;py0=1;py1=th-3;pcx=Math.floor(tw/2);
-    grid=[];for(let r=0;r<th;r++){grid.push([]);for(let c=0;c<tw;c++)grid[r].push(0)}
-    for(let r=py0;r<=py1;r++)for(let c=px0;c<=px1;c++)grid[r][c]=1;
-    for(let r=py1+1;r<th;r++){grid[r][pcx-1]=1;grid[r][pcx]=1}
-    const block=(c,r,w,h)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)if(grid[r+j]&&grid[r+j][c+i]===1)grid[r+j][c+i]=2};
-    for(let c=px0;c<=px1;c++)grid[py0][c]=2;                       // fence row
-    block(px0+1,py0+1,4,2);                                          // truck
-    block(px1-5,py0+1,3,1);block(px1-5,py0+2,2,1);                   // planters
-    for(let r=py1+1;r<th;r++)grid[r][pcx+1]=2;                       // white pillars beside the pier
-    const isW=(c,r)=>r<0||c<0||r>=th||c>=tw||grid[r][c]===0;
+    wc=tw<14?2:3;wr=Math.max(2,th-3);
+    rus=new Uint8Array(tw*th);
+    grid=[];for(let r=0;r<th;r++){const row=[];for(let c=0;c<tw;c++)row.push(c<wc&&r<wr?0:1);grid.push(row)}
+    const big=tw>=24&&th>=10, tc0=tw-6;
+    // sand patch (bottom right)
+    if(big&&th>=12)for(let r=th-4;r<th;r++)for(let c=tw-6;c<=tw-2;c++)grid[r][c]=4;
+    // tall grass: dense field on the shore, a second field on the right, a few patches between
+    for(let r=0;r<wr;r++)for(let c=wc+1;c<=wc+4&&c<tw;c++)if(grid[r][c]===1&&h2(c*3,r*5)>.07)grid[r][c]=3;
+    if(big)for(let r=6;r<=th-5;r++)for(let c=tw-12;c<=tw-9;c++)if(grid[r][c]===1&&h2(c*3+1,r*5)>.07)grid[r][c]=3;
+    for(let r=0;r<th;r++)for(let c=wc+7;c<tw-12;c++)if(grid[r][c]===1&&h2(c>>1,(r>>1)+99)<.16)grid[r][c]=3;
+    // big tree + round bush block movement
+    if(big){
+      for(let r=0;r<=4;r++)for(let c=tc0;c<=tc0+4;c++)grid[r][c]=2;
+      if(th>=12)for(let r=6;r<=7;r++)for(let c=tc0-2;c<=tc0-1;c++)grid[r][c]=2;
+    }
+    const isS=(c,r)=>r>=0&&c>=0&&r<th&&c<tw&&grid[r][c]===4;
     stat=mk(W,H,k=>{
-      k.clearRect(0,0,W,H);
-      for(let r=0;r<th;r++)for(let c=0;c<tw;c++){
-        if(grid[r][c]===0)continue;
-        k.drawImage(pave,c*TS,r*TS);
-        const X=c*TS,Y=r*TS;
-        k.fillStyle='#a06840';
-        if(isW(c,r-1)){k.fillRect(X,Y,TS,3);k.fillStyle='#6e4428';k.fillRect(X,Y,TS,1);k.fillStyle='#a06840'}
-        if(isW(c,r+1)){k.fillRect(X,Y+TS-4,TS,4);k.fillStyle='#6e4428';k.fillRect(X,Y+TS-1,TS,1);k.fillStyle='#a06840'}
-        if(isW(c-1,r)){k.fillRect(X,Y,3,TS);k.fillStyle='#6e4428';k.fillRect(X,Y,1,TS);k.fillStyle='#a06840'}
-        if(isW(c+1,r)){k.fillRect(X+TS-3,Y,3,TS);k.fillStyle='#6e4428';k.fillRect(X+TS-1,Y,1,TS);k.fillStyle='#a06840'}
+      for(let r=0;r<th;r++)for(let c=0;c<tw;c++)if(grid[r][c]!==0)gnd(k,c,r);
+      for(let r=0;r<th;r++)for(let c=0;c<tw;c++)if(grid[r][c]===4)sandT(k,c,r,isS);
+      // rocky shore around the lake
+      const rock=(x,y,edge)=>{
+        k.fillStyle=edge?'#5e3c34':(h2(x,y)<.16?'#d6a79a':'#8c5c52');k.fillRect(x,y,1,1);
+      };
+      const bx=wc*TS-5;
+      for(let y=0;y<wr*TS;y++)for(let x=0;x<5;x++)rock(bx+x,y,x===0||x===4);
+      for(let y=wr*TS-5;y<wr*TS;y++)for(let x=0;x<wc*TS-5;x++)rock(x,y,y===wr*TS-5||y===wr*TS-1);
+      if(big){
+        tree(k,tc0*TS,0);
+        if(th>=12)bush(k,(tc0-2)*TS+16,6*TS+16,15,13);
       }
-      // rocks in the water
-      for(let i=0;i<Math.round(tw*th/40);i++){
-        const c=ri(0,tw-1),r=ri(0,th-1);if(grid[r][c]!==0)continue;
-        const X=c*TS+3,Y=r*TS+4;
-        k.fillStyle='#8c98a6';k.fillRect(X,Y+2,9,6);k.fillRect(X+1,Y,7,8);
-        k.fillStyle='#d4dde8';k.fillRect(X+2,Y+1,5,4);k.fillStyle='#fff';k.fillRect(X+3,Y+2,2,1);
-      }
-      // fence + pillars
-      const post=(c,r)=>{k.fillStyle='#8a94a2';k.fillRect(c*TS+1,r*TS+4,14,9);k.fillStyle='#ffffff';k.fillRect(c*TS+1,r*TS+3,14,8);k.fillStyle='#c4cdd8';k.fillRect(c*TS+1,r*TS+10,14,1)};
-      for(let c=px0;c<=px1;c++)if(grid[py0][c]===2)post(c,py0);
-      for(let r=py1+1;r<th;r++)post(pcx+1,r);
-      // truck
-      const tx=(px0+1)*TS,ty=(py0+1)*TS;
-      k.fillStyle='#5a6270';k.fillRect(tx,ty+4,64,30);
-      k.fillStyle='#c9d1db';k.fillRect(tx+2,ty,14,32);k.fillStyle='#9aa4b2';k.fillRect(tx+4,ty+6,8,12);
-      k.fillStyle='#e8ecf1';k.fillRect(tx+18,ty+2,44,30);
-      k.fillStyle='#9a7a4a';for(let i=0;i<6;i++)k.fillRect(tx+24,ty+6+i*4,32,2);
-      k.fillStyle='#d03030';k.fillRect(tx+18,ty+24,44,3);
-      k.fillStyle='#202830';k.fillRect(tx+4,ty+30,6,4);k.fillRect(tx+42,ty+30,6,4);
-      // planters
-      const pl=(c,r)=>{const X=c*TS,Y=r*TS;
-        k.fillStyle='#e89828';k.fillRect(X,Y+1,TS,TS-2);k.fillStyle='#8a5010';k.fillRect(X+2,Y+3,TS-4,TS-6);
-        k.fillStyle='#50b848';k.fillRect(X+3,Y+2,4,8);k.fillRect(X+9,Y+2,4,8);k.fillStyle='#2f8a30';k.fillRect(X+5,Y+4,1,6);k.fillRect(X+11,Y+4,1,6)};
-      [[px1-5,py0+1],[px1-4,py0+1],[px1-3,py0+1],[px1-5,py0+2],[px1-4,py0+2]].forEach(([c,r])=>pl(c,r));
     });
-    const sc=px0+2,sr=py1-1;
-    tr={c:sc,r:sr,x:sc*TS,y:sr*TS,d:1,mv:0,tc:sc,tr:sr,w:0};
-    trail=[{c:sc,r:sr+1},{c:sc,r:sr+1},{c:sc,r:sr}];
-    esp={x:sc*TS,y:(sr+1)*TS,f:1,w:0};wait=0;
+    // start somewhere he can walk
+    let sc=wc+2,sr=Math.floor(th/2);
+    if(!walk(sc,sr)){
+      outer:for(let r=th-1;r>=0;r--)for(let c=0;c<tw;c++)if(walk(c,r)){sc=c;sr=r;break outer}
+    }
+    tr={c:sc,r:sr,x:sc*TS,y:sr*TS,d:0,mv:0,tc:sc,tr:sr,w:0};
+    wait=0;
   }
-  /* the trainer roams the left strip, right strip and bottom band, so he is never hidden behind the board */
-  const ring=(c,r)=>c<=px0+4||c>=px1-4||r>=py1-3;
-  const walk=(c,r)=>r>=0&&c>=0&&r<th&&c<tw&&grid[r][c]===1&&ring(c,r);
+
   function tick(){
+    for(let i=0;i<rus.length;i++)if(rus[i]>0)rus[i]--;
     if(tr.mv===0){
       if(wait>0){wait--}
       else{
-        let opts=[0,1,2,3].filter(d=>walk(tr.c+DX[d],tr.r+DY[d]));
+        const opts=[0,1,2,3].filter(d=>walk(tr.c+DX[d],tr.r+DY[d]));
+        if(!opts.length)return;
         let d=tr.d;
         if(!opts.includes(d)||Math.random()<.18){
           const nb=opts.filter(o=>o!==(tr.d^1));
@@ -2132,20 +2204,15 @@ const POK=(()=>{
         }
         if(Math.random()<.04)wait=ri(6,14);
         tr.d=d;
-        if(!wait&&walk(tr.c+DX[d],tr.r+DY[d])){tr.tc=tr.c+DX[d];tr.tr=tr.r+DY[d];tr.mv=2}
+        if(!wait&&walk(tr.c+DX[d],tr.r+DY[d])){tr.tc=tr.c+DX[d];tr.tr=tr.r+DY[d];tr.mv=2;trigger(tr.tc,tr.tr)}
       }
     }else{
       tr.mv+=2;tr.w++;
       tr.x=tr.c*TS+DX[tr.d]*tr.mv;tr.y=tr.r*TS+DY[tr.d]*tr.mv;
-      if(tr.mv>=TS){trail.push({c:tr.c,r:tr.r});if(trail.length>6)trail.shift();tr.c=tr.tc;tr.r=tr.tr;tr.x=tr.c*TS;tr.y=tr.r*TS;tr.mv=0}
-    }
-    const tg=trail[trail.length-3]||trail[0],gx=tg.c*TS,gy=tg.r*TS;
-    const dx=gx-esp.x,dy=gy-esp.y;
-    if(dx||dy){
-      esp.w++;
-      if(Math.abs(dx)>=Math.abs(dy)){esp.x+=clamp(dx,-2,2);if(dx)esp.f=dx>0?1:-1}else esp.y+=clamp(dy,-2,2);
+      if(tr.mv>=TS){tr.c=tr.tc;tr.r=tr.tr;tr.x=tr.c*TS;tr.y=tr.r*TS;tr.mv=0;trigger(tr.c,tr.r)}
     }
   }
+
   function trainer(x,y,d,w){
     x=Math.round(x);y=Math.round(y);
     const s=w%16<8?0:1,lg=w===0?0:(s?1:-1);
@@ -2164,24 +2231,23 @@ const POK=(()=>{
     if(d===3)R(x+10,y+4,5,2,'#b81818');
     R(x+7,y+1,2,2,'#ffffff');
   }
-  function espeon(e){
-    const x=Math.round(e.x),y=Math.round(e.y),f=e.f,L=(a,b,w,h,c)=>R(f>0?x+a:x+15-a-w+1,y+b,w,h,c);
-    const st=(e.w>>2)&1;
-    L(2,8,9,5,'#3fd04a');L(3,9,7,3,'#98f0a0');
-    L(9,5,5,5,'#3fd04a');L(9,2,2,4,'#3fd04a');L(12,2,2,4,'#3fd04a');L(10,3,1,2,'#8a4aa8');L(13,3,1,2,'#8a4aa8');
-    L(11,6,1,1,'#e03a3a');L(12,7,1,1,'#7a30a0');
-    L(3,13,2,3-st,'#1e8a30');L(9,13,2,2+st,'#1e8a30');
-    L(0,7,3,2,'#3fd04a');L(0,4,2,4,'#3fd04a');L(1,3,1,2,'#1e8a30');
-  }
+
   function draw(){
-    cx.fillStyle=cx.createPattern(water[(t>>3)&3],'repeat');cx.fillRect(0,0,W,H);
+    // animated lake, then the static land layer on top
+    cx.fillStyle=cx.createPattern(water[(t>>3)&3],'repeat');
+    cx.fillRect(0,0,wc*TS,wr*TS);
     cx.drawImage(stat,0,0);
-    const tOff=(tr.mv>0?2:0);
-    // draw back-to-front by y
-    const list=[{y:esp.y,fn:()=>espeon(esp)},{y:tr.y,fn:()=>trainer(tr.x,tr.y-2,tr.d,tr.mv?tr.w:0)}].sort((a,b)=>a.y-b.y);
-    list.forEach(o=>o.fn());
+    // swaying / rustling tall grass
+    for(let r=0;r<th;r++)for(let c=0;c<tw;c++)
+      if(grid[r][c]===3)cx.drawImage(GF[shear(c,r)+2],c*TS,r*TS);
+    // trainer, then grass redrawn over his legs so he walks *through* it
+    trainer(tr.x,tr.y-2,tr.d,tr.mv?tr.w:0);
+    const tiles=[[tr.c,tr.r]];if(tr.mv>0)tiles.push([tr.tc,tr.tr]);
+    tiles.forEach(([c,r])=>{
+      if(grid[r]&&grid[r][c]===3)cx.drawImage(GF[shear(c,r)+2],0,8,16,8,c*TS,r*TS+8,16,8);
+    });
   }
-  return{name:'POKÉMON',tone:'light',U:()=>innerHeight<760?3:4,init,tick,draw};
+  return{name:'POKÉMON FIRERED',tone:'light',U:()=>innerHeight<760?3:4,init,tick,draw};
 })();
 
 /* =====================================================
